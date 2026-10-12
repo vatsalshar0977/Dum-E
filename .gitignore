@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+calibration_photos/
+camera_intrinsics.json

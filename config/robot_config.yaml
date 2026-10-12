@@ -1,3 +1,4 @@
+# DESIGN TARGETS ONLY. Not validated on real hardware. See docs/verification_status.md.
 # =============================================================================
 # B.U.D.-E (Benchtop Utility & Dexterity Engine) — Master Robot Configuration
 # Ultra-Budget Sub-$75 (~$58.50) 3D-Printed Desktop Edition
@@ -21,7 +22,7 @@ robot:
 controller:
   board: "ESP32-WROOM-32 DevKitC (USB-C)"
   pwm_driver: "PCA9685 16-Channel 12-Bit I2C PWM Driver (50 Hz)"
-  current_sensor: "INA219 I2C High-Side DC Current/Voltage Sensor (0x40)"
+  current_sensor: "INA219 I2C High-Side DC Current/Voltage Sensor (0x41; confirm jumper and scanner)"
   serial_baudrate: 115200
   # Update port for your OS:
   #   macOS:   "/dev/tty.usbserial-0001" or "/dev/tty.SLAB_USBtoUART"

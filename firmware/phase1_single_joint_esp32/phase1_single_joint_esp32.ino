@@ -1,4 +1,7 @@
 /**
+ * UNSAFE LEGACY DEMO: DO NOT FLASH FOR HARDWARE OPERATION. SET_CURRENT_LIMIT
+ * CAN CLEAR THE TRIP LATCH; THE INA219 IS NOT HUMAN COLLISION PROTECTION.
+ * See docs/verification_status.md and firmware/phase3_bench_diagnostic/.
  * ============================================================================
  * B.U.D.-E — Phase 1 Minimal Working Firmware: Single-Joint Bringup & Safety
  * Target MCU : ESP32-WROOM-32 DevKitC (Arduino IDE / PlatformIO)

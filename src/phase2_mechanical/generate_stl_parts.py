@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """
+WARNING: EXPERIMENTAL MESH DEMO ONLY. Does not perform Boolean subtraction or
+verify mating; generated STLs are NOT ready for functional robot assembly.
+See docs/verification_status.md before printing anything.
+
 Phase 2 Parametric 3D-Printable STL Mesh Generator for B.U.D.-E (Sub-$75 Edition).
 
 Generates all 11 printable STL files (00..10) in `cad/stl/` with exact millimeter

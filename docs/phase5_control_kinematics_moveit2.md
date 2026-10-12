@@ -1,0 +1,9 @@
+# Phase 5 — control foundations
+
+`src/phase5_control/kinematics.py` computes FK and two geometric IK branches for the **schematic** arm. Joint order is yaw, shoulder, elbow, wrist pitch, roll (degrees). Zero pitch joints point straight up; positive pitch folds toward the work area. Tool pitch is measured from horizontal. Unlike an unsafe 'nearest target' fallback, `inverse(x,y,z,pitch,roll)` raises when the requested pose is outside reach or joint limits. It does not check orientation of real gripper fingers, obstructed approaches or desk collisions; check paths separately.
+
+`trajectory.py` produces quintic minimum-jerk sampled joint positions with nominal speed limits and a **link-centerline** desk margin; it checks the entire candidate before returning it. No voxel map, exact self-collision, current/torque model, measured servo feedback or human-aware planning is implemented. Do not stream this trajectory to hardware. To verify maths: `python3 -m unittest discover -s tests -v` and `python3 src/phase5_control/kinematics.py` (Windows: `python`).
+
+## ROS 2 / MoveIt 2 integration (future work, not a working controller)
+
+For development use an OS/ROS 2 distribution combination supported by the current ROS 2 and MoveIt 2 docs (normally Ubuntu in a separate PC/VM or Linux machine; Windows native MoveIt support varies). Import this URDF after geometry revision, add a real joint-state broadcaster, calibrated joint limits and a controller compatible with `ros2_control`. Mock hardware and RViz planning **before** implementing a serial bridge to ESP32. Hardware integration must reject stale commands, require explicit re-arm after e-stop and verify measured positions (the current hobby servos lack feedback). No functional MoveIt package or validated ros2_control plugin is claimed here. Reference: https://github.com/moveit/moveit2 and https://github.com/ros-controls/ros2_control.
