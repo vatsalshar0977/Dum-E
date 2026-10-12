@@ -1,0 +1,147 @@
+# =============================================================================
+# B.U.D.-E (Benchtop Utility & Dexterity Engine) — Master Robot Configuration
+# Ultra-Budget Sub-$75 (~$58.50) 3D-Printed Desktop Edition
+# =============================================================================
+
+robot:
+  name: "B.U.D.-E"
+  full_name: "Benchtop Utility & Dexterity Engine"
+  alternate_names:
+    - "F.U.M.B.L.-E (Flexible Utility Manipulator for Benchtop Lab Experiments)"
+    - "C.L.A.W.-E (Compact Lab Assistant & Workshop Executor)"
+    - "G.I.Z.M.O. (General Intelligent Zero-cost Manipulator Organism)"
+    - "P.I.P. (Personal Interactive Picker)"
+  dof_arm: 5
+  dof_gripper: 1
+  total_servos: 6
+  max_reach_m: 0.225        # 22.5 cm compact horizontal reach from base axis to claw tip
+  nominal_payload_kg: 0.100 # 100 g continuous safe payload (screwdrivers, pliers, cups, screws)
+  max_payload_kg: 0.160     # 160 g short-duration payload
+
+controller:
+  board: "ESP32-WROOM-32 DevKitC (USB-C)"
+  pwm_driver: "PCA9685 16-Channel 12-Bit I2C PWM Driver (50 Hz)"
+  current_sensor: "INA219 I2C High-Side DC Current/Voltage Sensor (0x40)"
+  serial_baudrate: 115200
+  # Update port for your OS:
+  #   macOS:   "/dev/tty.usbserial-0001" or "/dev/tty.SLAB_USBtoUART"
+  #   Windows: "COM3"
+  #   Linux:   "/dev/ttyUSB0"
+  default_port: "/dev/tty.usbserial-0001"
+  interpolation_rate_hz: 100 # On-board ESP32 cosine/trapezoidal smoothing so cheap servos move smoothly
+
+power_system:
+  nominal_voltage_v: 6.0    # 6.0V 5A (or 5V 6A) regulated DC power supply brick
+  min_safe_voltage_v: 4.8
+  max_safe_voltage_v: 6.5
+  supply_current_limit_a: 5.0
+  ina219_arm_trip_current_a: 3.20     # Software E-stop threshold if arm collides with obstacle/hand
+  ina219_gripper_stall_current_a: 0.45 # Stops closing gripper as soon as object is firmly pinched
+
+links:
+  base_height_m: 0.055      # Base mounting plate to shoulder pitch axis (55 mm)
+  upper_arm_m: 0.080        # Shoulder pitch to elbow pitch (80 mm)
+  forearm_m: 0.075          # Elbow pitch to wrist pitch (75 mm)
+  wrist_to_roll_m: 0.022    # Wrist pitch to wrist roll (22 mm)
+  gripper_length_m: 0.048   # Wrist roll to claw tip center (48 mm)
+
+  # Estimated 3D-printed PLA link masses (using 3 walls, 20% gyroid infill — ~210 g total print including base & clamp)
+  masses_kg:
+    base_turret: 0.032
+    upper_arm: 0.022
+    forearm: 0.018
+    wrist_bracket: 0.010
+    gripper_assembly: 0.025 # Includes 3D-printed 2-finger geared claw + 6g mini USB camera
+
+actuator_specs:
+  proximal_model: "MG996R / DS3218 Metal-Gear Standard Servo (J1 Base, J2 Shoulder, J3 Elbow)"
+  proximal_mass_kg: 0.055
+  proximal_stall_torque_nm: 1.27     # ~13.0 kg.cm @ 6.0V (MG996R: 1.08 N.m, DS3218: 1.96 N.m)
+  proximal_continuous_torque_nm: 0.55
+  distal_model: "MG90S Metal-Gear Micro Servo (J4 Wrist Pitch, J5 Wrist Roll, J6 Gripper)"
+  distal_mass_kg: 0.0134             # Only 13.4 g each! Cuts wrist weight by 75%
+  distal_stall_torque_nm: 0.216      # 2.2 kg.cm @ 6.0V = 0.216 N.m
+  distal_continuous_torque_nm: 0.095
+  idle_current_a: 0.010
+  nominal_moving_current_a: 0.28
+  stall_current_proximal_a: 1.50
+  stall_current_distal_a: 0.55
+
+joints:
+  - id: 1
+    pca9685_channel: 0
+    name: "base_yaw"
+    servo_type: "MG996R"
+    role: "Waist rotation (pans across workbench on 3D-printed BB slewing bearing)"
+    axis: [0, 0, 1]
+    min_deg: -90.0
+    max_deg: 90.0
+    home_deg: 0.0
+    pwm_min_us: 500
+    pwm_max_us: 2500
+    max_speed_deg_s: 100.0
+
+  - id: 2
+    pca9685_channel: 1
+    name: "shoulder_pitch"
+    servo_type: "DS3218_or_MG996R"
+    role: "Main lifting joint (includes optional 3D-printed spring/band gravity assist)"
+    axis: [0, 1, 0]
+    min_deg: -75.0
+    max_deg: 85.0
+    home_deg: -15.0
+    pwm_min_us: 500
+    pwm_max_us: 2500
+    max_speed_deg_s: 80.0
+
+  - id: 3
+    pca9685_channel: 2
+    name: "elbow_pitch"
+    servo_type: "MG996R"
+    role: "Forearm reach & folding"
+    axis: [0, 1, 0]
+    min_deg: -90.0
+    max_deg: 90.0
+    home_deg: 40.0
+    pwm_min_us: 500
+    pwm_max_us: 2500
+    max_speed_deg_s: 100.0
+
+  - id: 4
+    pca9685_channel: 3
+    name: "wrist_pitch"
+    servo_type: "MG90S"
+    role: "Tool leveling & expressive 'nod / sad droop'"
+    axis: [0, 1, 0]
+    min_deg: -85.0
+    max_deg: 85.0
+    home_deg: -25.0
+    pwm_min_us: 550
+    pwm_max_us: 2450
+    max_speed_deg_s: 140.0
+
+  - id: 5
+    pca9685_channel: 4
+    name: "wrist_roll"
+    servo_type: "MG90S"
+    role: "Tool alignment & puppy-like 35-deg 'head-tilt'"
+    axis: [1, 0, 0]
+    min_deg: -90.0
+    max_deg: 90.0
+    home_deg: 0.0
+    pwm_min_us: 550
+    pwm_max_us: 2450
+    max_speed_deg_s: 160.0
+
+  - id: 6
+    pca9685_channel: 5
+    name: "gripper"
+    servo_type: "MG90S"
+    role: "3D-printed geared 2-finger claw (INA219 current-limited grasp)"
+    axis: [0, 0, 1]
+    min_deg: 0.0            # Fully closed
+    max_deg: 75.0           # Fully open (52 mm jaw opening)
+    home_deg: 35.0
+    pwm_min_us: 600
+    pwm_max_us: 2300
+    max_speed_deg_s: 110.0
