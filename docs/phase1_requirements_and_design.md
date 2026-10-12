@@ -1,3 +1,5 @@
+> **STOP: ARCHIVED DESIGN ESTIMATES, NOT VERIFIED BUILD INSTRUCTIONS.** Existing Phase 2 STLs have unverified and likely nonfunctional mating features; price/payload/current-safety claims below are not validated. Read [verification status](verification_status.md) and the revised Phase 3–6 guides before using any hardware.
+
 # Phase 1 — Requirements, Naming, Architecture & System Design (Sub-$75 3D-Printed Edition)
 
 ## 1. Robot Naming & Personality Identity

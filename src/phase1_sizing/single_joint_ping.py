@@ -89,8 +89,12 @@ def main() -> int:
     parser.add_argument("--wiggle", action="store_true", help="Perform a smooth +/-15 deg greeting wiggle")
     parser.add_argument("--dry-run", action="store_true", help="Simulate USB serial TX/RX without hardware")
     args = parser.parse_args()
+    if not args.dry_run:
+        parser.error("Legacy Phase 1 firmware can clear its fault latch and has uncalibrated PWM. "
+                     "Hardware mode is disabled; use docs/phase3_electronics_and_wiring.md "
+                     "and the unloaded Phase 3 bench diagnostic instead.")
 
-    print(f"=== B.U.D.-E Sub-$75 Single-Joint Bringup (PCA9685 Ch={args.channel}, dry_run={args.dry_run}) ===")
+    print(f"=== B.U.D.-E legacy demonstration (PCA9685 Ch={args.channel}, dry_run={args.dry_run}) ===")
     bridge = ESP32ServoBridge(port=args.port, dry_run=args.dry_run)
     try:
         ping_res = bridge.send_cmd({"cmd": "PING"})

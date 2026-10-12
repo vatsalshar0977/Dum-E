@@ -1,3 +1,5 @@
+> **STOP: ARCHIVED DESIGN ESTIMATES, NOT VERIFIED BUILD INSTRUCTIONS.** Existing Phase 2 STLs have unverified and likely nonfunctional mating features; price/payload/current-safety claims below are not validated. Read [verification status](verification_status.md) and the revised Phase 3–6 guides before using any hardware.
+
 # Phase 2 — Mechanical Design, 3D-Printable CAD, Tolerances & Cable Management
 
 ## 1. Open-Source Mechanical Heritage

@@ -65,7 +65,8 @@ def main() -> int:
     ]
 
     print("=" * 88)
-    print("  B.U.D.-E — PHASE 2 STL INTEGRITY & BUILD-PLATE COMPATIBILITY CHECK")
+    print("  B.U.D.-E — PHASE 2 STL BYTE LAYOUT & BUILD-PLATE SIZE ONLY")
+    print("  WARNING: Does NOT test holes, watertightness, mating fit or strength; see docs/verification_status.md")
     print("=" * 88)
     print(f"{'Part Filename':<40} {'Size (X×Y×Z mm)':<24} {'Tris':<8} {'180mm Bed Check'}")
     print("-" * 88)
@@ -85,7 +86,7 @@ def main() -> int:
         print(f"{fname:<40} {dx:5.1f}×{dy:5.1f}×{dz:4.1f} mm    {tris:<8d} {status}")
 
     print("\n" + "=" * 88)
-    print("  CABLE ROUTING, EXTENSION LENGTH & SLACK-LOOP SPECIFICATION")
+    print("  UNVERIFIED CABLE LENGTH ESTIMATES — MEASURE YOUR BUILD FIRST")
     print("=" * 88)
     cable_rows = [
         ("J1 Base Yaw (MG996R)",      "PCA9685 Ch 0", "250 mm (Stock lead)", "35 mm loop inside base turret"),
