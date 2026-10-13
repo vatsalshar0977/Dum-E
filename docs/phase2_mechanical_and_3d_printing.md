@@ -12,22 +12,35 @@ Instead of reinventing joint kinematics from scratch, B.U.D.-E's mechanical desi
 
 ## 2. Complete 3D-Printable Part Manifest (`cad/stl/`)
 
-All 11 STL files are generated parametrically by `python3 src/phase2_mechanical/generate_stl_parts.py` and verified by `python3 src/phase2_mechanical/verify_print_parts.py`. Every part prints **without support material** and fits on any `180 × 180 mm` (or larger) FDM printer bed:
+All **13** STL files are generated parametrically by
+`python3 src/phase2_mechanical/generate_stl_parts.py`. Every part prints **without support
+material** and fits on any `180 x 180 mm` (or larger) FDM bed. The dimensions and volumes
+below are **measured from the delivered STL bytes**, not restated from the source:
 
-| File Name | Dimensions (`X×Y×Z mm`) | Est. PLA (`g`) | Layer / Walls / Infill | Print Orientation & Notes |
-|---|---|---:|---|---|
-| `00_tolerance_test_coupon.stl` | `72.2 × 38.0 × 14.0` | `8 g` | `0.20mm` / 3 walls / 20% | **Print this first (12 mins)!** Verifies `MG996R`/`MG90S` pockets, `M3` hex nut trap & `6mm` pivot pin fit. |
-| `01_desk_c_clamp_frame.stl` | `58.0 × 83.0 × 18.0` | `34 g` | `0.20mm` / **5 walls** / 35% | **Print flat on its side** so continuous perimeter filaments wrap around the C-throat without delaminating. |
-| `02_desk_c_clamp_screw_and_pad.stl` | `61.0 × 32.0 × 60.0` | `14 g` | `0.16mm` / **5 walls** / 40% | Knob flat on bed; 5 perimeters give the screw shaft high torsional strength. |
-| `03_base_lower_slewing_ring.stl` | `121.0 × 92.0 × 32.0` | `42 g` | `0.20mm` / 4 walls / 25% | Base flange flat on bed; houses stationary `J1 MG996R`, lower BB race & `22mm` `LA38-11ZS` E-stop mount. |
-| `04_base_upper_turret_j2.stl` | `82.0 × 83.3 × 44.0` | `36 g` | `0.20mm` / 4 walls / 25% | Disk flat on bed; includes `J2` double-shear uprights + rear rubber-band counterbalance hook. |
-| `05_upper_arm_link_80mm.stl` | `111.4 × 47.0 × 20.0` | `24 g` | `0.20mm` / 3 walls / 20% | Flat on bed (`L2 = 80 mm` axis-to-axis); includes engraved `B.U.D.-E` bridge & rubber-band post. |
-| `06_forearm_link_75mm.stl` | `96.6 × 34.5 × 10.0` | `17 g` | `0.20mm` / 3 walls / 20% | Flat on bed (`L3 = 75 mm` axis-to-axis); transitions from `J3 MG996R` to `J4 MG90S`. |
-| `07_wrist_pitch_roll_bracket.stl` | `47.0 × 25.5 × 12.0` | `9 g` | `0.20mm` / 3 walls / 20% | Flat on bridge face (`L4 = 22 mm`); couples `J4` pitch (nod) to `J5` roll (puppy head-tilt). |
-| `08_gripper_body_and_cam_mount.stl` | `36.0 × 42.0 × 38.0` | `13 g` | `0.20mm` / 3 walls / 20% | Palm back flat on bed; holds `J6 MG90S` + top bezel for `6 g` USB webcam module. |
-| `09_gripper_geared_fingers_pair.stl` | `57.0 × 54.0 × 6.0` | `9 g` | `0.16mm` / 4 walls / 30% | Flat on gear face; `0.16 mm` layer height ensures smooth spur-gear tooth meshing. |
-| `10_cable_clips_and_electronics_tray.stl` | `72.0 × 68.0 × 8.0` | `12 g` | `0.20mm` / 3 walls / 20% | Mounts `ESP32` + `PCA9685` + `INA219` beside base + 6 snap-on cable clips. |
-| **TOTAL** | **Fits any `180×180mm` bed** | **`218 g`** | **~$3.92 of PLA** | **Zero support material required across all 11 files!** |
+| File Name | Measured `X x Y x Z` (mm) | PLA at 100% solid | Declared print orientation |
+|---|---|---:|---|
+| `00_tolerance_test_coupon.stl` | `84.0 x 40.0 x 13.0` | `23 g` | Flat on the base plate |
+| `01_desk_c_clamp_frame.stl` | `58.0 x 80.0 x 18.0` | `56 g` | Lying on its side so the layer lines wrap the C-profile |
+| `02_desk_c_clamp_screw_and_pad.stl` | `61.0 x 32.0 x 60.0` | `20 g` | Knob flat on the bed |
+| `03_base_lower_slewing_ring.stl` | `120.0 x 92.0 x 42.0` | `140 g` | Plate flat on the bed |
+| `04_base_upper_turret_j2.stl` | `74.0 x 77.0 x 46.0` | `56 g` | Slewing disk flat on the bed |
+| `05_upper_arm_link_80mm.stl` | `127.5 x 66.1 x 34.0` | `46 g` | Flat on the bed |
+| `06_forearm_link_75mm.stl` | `115.0 x 63.1 x 27.0` | `33 g` | Flat on the bed |
+| `07_wrist_pitch_roll_bracket.stl` | `38.0 x 43.6 x 39.5` | `21 g` | Clevis flanks down, J5 ceiling up |
+| `08_gripper_body_and_cam_mount.stl` | `44.0 x 42.0 x 45.0` | `40 g` | Palm back flat on the bed |
+| `09_gripper_geared_fingers_pair.stl` | `57.2 x 54.0 x 6.0` | `9 g` | Flat on the gear face at 0.16 mm layers |
+| `10_cable_clips_and_electronics_tray.stl` | `72.0 x 68.0 x 8.0` | `17 g` | Flat on the bed |
+| `11_mobile_rover_chassis.stl` | `146.0 x 111.0 x 25.0` | `159 g` | Deck down, side plates vertical |
+| `12_drive_wheels_and_caster.stl` | `48.0 x 108.0 x 26.5` | `19 g` | Wheels flat with the axis vertical, caster cup mouth up |
+
+Measured envelope and union volume come from the STL bytes and the declared primitives, the same numbers `verify_assembly_fit.py` asserts. The 13 parts are **639 g of
+100% solid PLA**; at 3 perimeters and 20% infill a slicer will report roughly 300 g (~$5.40 at $18/kg).
+
+The STLs are exported in the **assembly frame**: a joint axis is the origin, so parts `05`,
+`06`, `07` and `08` legitimately start below `z = 0`. `verify_print_parts.py` checks that the
+lowest plane of every part is a *flat face* (at least 4 vertices at `z_min`), so a slicer's
+"drop to bed" seats the part on a face and never on a curve. Parts `00`-`04`, `09`, `10`, `11`
+and `12` already sit exactly on `z = 0`.
 
 ---
 
@@ -149,3 +162,74 @@ they fail on dark, glossy or wet surfaces, and they fail silently. Start on the 
 stowed, supervised, with a physical stop. See
 [Phase 6](phase6_perception_and_mobile_navigation.md) and
 [verification status](verification_status.md).
+
+
+---
+
+# Appendix B - True-hollow cavities, datasheet spline offsets, and the fit audit
+
+This appendix documents the upgrade that replaced every "pocket" with real empty space and
+made every joint coaxial to the servo's own datasheet, plus the tool that proves it from the
+delivered files.
+
+## B.1 What changed in the geometry
+
+| Problem before | What it is now |
+|---|---|
+| Cavities were carved by *adding* a solid that overlapped material - a slicer saw the overlap, not a void | `add_hollow_pocket(cx, cy, z0, inner_dx, inner_dy, depth, wall, floor_t, omit)` emits only the four perimeter walls (and an optional floor) **outside** the opening, so the interior is 100% empty air |
+| Through-bores were notches, not holes | `add_tube_z(cx, cy, z0, height, r_inner, r_outer)` and `add_plate_with_holes_z(...)`; part `01`'s M12 screw hole and the `LA38-11ZS` O22.4 mm E-stop mount are now real openings |
+| The base was a lying-drive pocket: the tower was 32 mm tall | `J1_SPLINE_Z = 42.0`: an upright `MG996R` hangs its 35.5 mm case *below* the spline face, so the tower is 42 mm tall and the spline lands on its top face. The E-stop collar sits at `z = 38...42`, giving 37 mm of clear depth behind the panel |
+| Servo pockets were placed by eye | `SPLINE_OFFSET = +10.35 mm` (`MG996R`, spline 10.0 mm in from a short end = 10.35 mm from the case centre) and `+5.60 mm` (`MG90S`, 5.8 mm from a short end = 5.60 mm from centre) shifts every pocket so the 25T / 21T output spline lands **exactly** on the joint axis |
+| Straddle gaps were copied from the old sketch | `straddle_outer_needed(case) = WALL_T (2.5) + AXIAL_FIT_TOTAL (1.0) + case + DRIVEN_WALL_T (3.0)`: J2 `44.0 -> 44.6`, J3 `42.0 -> 42.6`, J4 `29.0 -> 29.6`, i.e. **+0.60 mm total, +0.30 mm per side** |
+
+## B.2 A real bug this work found
+
+The M3 nut traps in part `03` were **rectangular, not hexagonal**. `plate_with_holes_2d`
+carved holes with a radial fan from the hole's centroid out to the hole's bounding-box
+corners. Every vertex of a regular hexagon lies on its own bounding box, so all six fan wedges
+collapsed to zero area and the box corners - the actual nut corners - stayed filled.
+
+The fan is now exact half-plane clipping (Sutherland-Hodgman) of the box against each hole
+edge, and `_clip_halfplane` keeps the *outside* of each edge. The audit measures the result:
+`03`'s traps report six vertices at exactly `r = 3.1754 mm` (the M3 nut's circumradius) at each
+of the four stations. A nut will drop in and cannot turn.
+
+## B.3 The audit: `verify_assembly_fit.py`
+
+```
+python3 src/phase2_mechanical/verify_assembly_fit.py          # 206 checks
+python3 src/phase2_mechanical/verify_assembly_fit.py --voxel 3  # coarser, faster
+```
+
+It re-reads `cad/stl/*.stl` - the files you print - and measures:
+
+* **mesh (52)** - triangle count, zero-area triangles, `z_min`, flat-vertex count at the base,
+  max dimension.
+* **volume (13)** - analytic union volume of the declared primitives against the signed
+  triangle-soup volume, plus per-part tolerance.
+* **probes (47)** - rays fired from inside every cavity; a cavity must be *air* (0 covering
+  primitives) and every wall *material*. Ray parity is only a writer cross-check, because two
+  overlapping primitives cancel and would falsely report air.
+* **coaxial (25)** - the centre of every bore's own vertex ring, measured against the axis it
+  must share with its driven partner. **Every row now reads 0.0000 mm.**
+* **pockets (38)** - the servo cavity's two side spans, floor, open faces, and the case centre
+  the mesh actually has versus the one that puts the spline on the axis (`spline err` 0.0013 mm,
+  which is the audit's own ray nudge, not a model error).
+* **straddle (12)** - parent outer span against child inner span, from the bore rings.
+* **rover (19)** - the four M3 traps and four clearance holes at `r = 36.000 mm` on
+  `45 / 135 / 225 / 315 deg`, wheel tyre radius (`24.00 mm`), hub bore, and the chassis axle
+  bore on the wheel axis.
+
+Current result: **206 / 206 checks PASS**, and `verify_print_parts.py` PASS.
+
+## B.4 Honest limits of this appendix
+
+* Nothing here has been printed, fitted, loaded or dropped. A self-consistent CAD model is not
+  an assembled robot, and no dimension was taken from a caliper.
+* Every servo figure is a datasheet declaration. Open-frame hobby servos vary by a millimetre
+  between sellers, and the MG996R's mounting ears are **not** modelled: the case is located by
+  its sides and the pocket floor, so take the 1.0 mm of axial slack up with the horn screws or
+  add a strap over the case.
+* `AXIAL_FIT_TOTAL_MM = 1.0 mm` is a design allowance, not a measurement.
+* Print `00_tolerance_test_coupon.stl` first and fit a real servo, a real M3 nut and a real
+  6 mm pin before printing anything else.

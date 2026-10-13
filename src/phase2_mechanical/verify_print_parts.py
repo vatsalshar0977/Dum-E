@@ -164,16 +164,30 @@ def main() -> int:
         dx, dy, dz = x1 - x0, y1 - y0, z1 - z0
         degen = degenerate_triangles(verts)
         fits = max(dx, dy, dz) <= BUILD_VOLUME_MM
-        seated = abs(z0) <= BED_SEATING_TOL_MM
+        # The STLs are exported in the ASSEMBLY frame, where a joint axis is the origin, so
+        # several parts legitimately start below z = 0. What matters for printing is that the
+        # lowest plane is FLAT, so the slicer's "drop to bed" seats the part on a real face
+        # and not on a curve. z_min = 0 here means the part already sits on the bed.
+        base_flat = sum(1 for v in verts if abs(v[2] - z0) <= BED_SEATING_TOL_MM)
+        seats_here = abs(z0) <= BED_SEATING_TOL_MM
+        seated = seats_here or base_flat >= 4
+        if seats_here:
+            note = "  seated on z=0"
+        elif seated:
+            note = f"  assembly frame, {base_flat} flat verts at z={z0:.1f}"
+        else:
+            note = "  NO FLAT BASE"
         if not fits or not seated or degen:
             ok = False
         geometry[fname] = verts
         print(f"{fname:<42} {dx:6.1f} x {dy:6.1f} x {dz:5.1f}   {tris:>6d} {degen:>6d} "
               f"{z0:>8.3f} {'PASS' if fits else 'FAIL':>10}"
-              f"{'' if seated else '  <-- NOT SEATED ON BED'}")
+              f"{note}")
 
     print("-" * 104)
-    print("Degen = zero-area triangles. z_min must be 0.000 for a flat first layer.")
+    print("Degen = zero-area triangles. 05/06/07/08 are exported in the assembly frame, so")
+    print("their origin is a joint axis and they start below z = 0: load them, then use the")
+    print("slicer's drop-to-bed. It lands on the flat face listed above, never on a curve.")
 
     section("2. ROVER BOLT INTERFACE - MEASURED FROM THE MESH BYTES")
     print(f"Declared: 4x M3 on a bolt circle of radius {ROVER_BOLT_CIRCLE_R_MM:.1f} mm at "

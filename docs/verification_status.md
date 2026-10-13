@@ -54,6 +54,25 @@ Run `python3 -m unittest discover -s tests -v`; this checks URDF structure, FK/I
 - The interactive viewer is new. Its browser forward kinematics are compared against the
   Python implementation by the test suite when `node` is installed; if you edit one, edit both.
 
+## Task 1 upgrade (true hollow / coaxial / straddle)
+
+- `generate_stl_parts.py` no longer carves cavities with overlapping solids: holes and bores
+  come from `add_hollow_pocket`, `add_tube_z`, `add_hex_pocket_z` and `add_plate_with_holes_z`,
+  so a cavity is empty by construction and the mesh writer emits no material inside it.
+- Every driven link now uses the datasheet spline offset (`+10.35 mm` MG996R, `+5.60 mm`
+  MG90S). `verify_assembly_fit.py` measures each bore's own vertex ring against its axis:
+  **25 / 25 rows at 0.0000 mm**, and the servo case centre is 0.0013 mm from the position that
+  puts the spline on the joint axis - that residual is the audit's ray nudge, not the model.
+- Telescoping straddle clearances are +0.60 mm total (+0.30 mm per side) at J2, J3 and J4,
+  measured from bore rings: `44.000 / 44.600`, `42.000 / 42.600`, `29.000 / 29.600`.
+- A real defect was found and fixed: the hex nut traps in part `03` were rectangular because
+  the hole carver's radial fan collapsed on a regular hexagon. See phase 2 Appendix B.2.
+- `verify_assembly_fit.py` now reports **206 / 206 PASS**; `verify_print_parts.py` PASSes; the
+  unit suite is 33 tests, OK.
+- The STLs are exported in the **assembly frame** (a joint axis is the origin). Parts `05`-`08`
+  therefore start below `z = 0`; the checks assert a *flat base* rather than `z_min == 0`, and
+  the slicer's drop-to-bed is a documented step.
+
 ## Still not demonstrated
 
 No part has been printed or measured. No servo has been powered. No camera photo has been

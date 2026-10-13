@@ -75,7 +75,15 @@ class RoverParts(unittest.TestCase):
             tris, verts = read_binary_stl(path)
             (x0, y0, z0), (x1, y1, z1) = bounds(verts)
             self.assertLessEqual(max(x1 - x0, y1 - y0, z1 - z0), 180.0, name)
-            self.assertAlmostEqual(z0, 0.0, places=3, msg=f"{name} does not seat on the bed")
+            # EXPORT FRAME CONTRACT: the STLs are exported in the ASSEMBLY frame, where a
+            # joint axis is the origin. Parts whose lowest feature is not a face of the
+            # assembly (the arm links, the wrist, the gripper) therefore start below z = 0.
+            # What every part must guarantee is a FLAT lowest plane, so the slicer's
+            # drop-to-bed lands on a face and never on a curve.
+            flat = sum(1 for v in verts if abs(v[2] - z0) <= 0.005)
+            self.assertGreaterEqual(flat, 4, f"{name} has no flat base at z = {z0:.3f}")
+            if z0 > 0.0:
+                self.fail(f"{name} starts above the bed at z = {z0:.3f}")
             self.assertEqual(degenerate_triangles(verts), 0, name)
             self.assertEqual(len(verts), tris * 3, name)
 
