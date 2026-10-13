@@ -589,6 +589,33 @@
     });
   }
 
+  // -------------------------------------------------- public hook (Phase 7 panel) ---
+  // The personality panel drives the SAME joints the sliders do, so the drawn arm and the
+  // printed command stream can never disagree about what the robot was asked to do.
+  window.BUDE = {
+    setJoints(q) {
+      state.plan = null;
+      state.q = q.slice(0, 5).map(Number);
+      syncSliders();
+    },
+    setGripper(v) {
+      state.gripper = Math.min(1, Math.max(0, v));
+      const grip = $('grip');
+      grip.value = Math.round(state.gripper * 100);
+      $('gripOut').textContent = state.gripper > 0.8 ? 'open'
+        : state.gripper < 0.25 ? 'closed' : 'part open';
+    },
+    halt() {
+      state.plan = null;
+      state.rover.on = false;
+      state.rover.visible = false;
+      window.BUDE.setGripper(1);
+      $('rover').checked = false;
+      state.message = 'halted (viewer only)';
+      status('Stopped the VIEWER and cleared the plan. A real stop is the physical e-stop.');
+    },
+  };
+
   boot();
   requestAnimationFrame(tick);
 })();

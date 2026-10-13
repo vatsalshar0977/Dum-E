@@ -60,6 +60,12 @@ from src.phase6_perception.camera_and_hand_eye_calib import (  # noqa: E402
 from src.phase6_perception.vision_mobile_navigator import (  # noqa: E402
     plan_fetch_sequence,
 )
+from src.phase7_voice_personality.personality_engine import (  # noqa: E402
+    HOME_DEG, SAMPLE_HZ, SEQUENCES, PersonalityDirector,
+)
+from src.phase7_voice_personality.voice_assistant import (  # noqa: E402
+    HOME_PERCHED_DEG, KNOWN_PHRASES, TOOL_SYNONYMS, Assistant, SimRobotLink, parse,
+)
 
 ASSETS = Path(__file__).resolve().parent / "web_assets"
 STL_DIR = ROOT / "cad" / "stl"
@@ -155,6 +161,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._api_plan(query)
             elif route == "/api/fetch":
                 self._api_fetch(query)
+            elif route == "/api/personality":
+                self._api_personality()
+            elif route == "/api/personality/sequence":
+                self._api_sequence(query)
+            elif route == "/api/voice":
+                self._api_voice(query)
             elif route == "/api/parts":
                 self._api_parts()
             elif route.startswith("/api/stl/"):
@@ -289,9 +301,68 @@ class Handler(BaseHTTPRequestHandler):
             tris = int.from_bytes(raw[80:84], "little") if len(raw) >= 84 else 0
             parts.append({"name": path.name, "bytes": len(raw), "triangles": tris})
         self._json({"ok": True, "parts": parts,
-                    "note": ("These meshes ADD primitives and never subtract, so several "
-                             "'pockets' are pockets only by virtue of their walls. Inspect "
-                             "cross-sections in a slicer before printing.")})
+                    "note": ("Cavities are true voids: this generator emits walls and bores "
+                             "around empty space instead of subtracting overlap, and "
+                             "verify_assembly_fit.py re-measures every one of them from these "
+                             "bytes. Still confirm the first article in a slicer.")})
+
+    def _api_personality(self) -> None:
+        """The Phase 7 gesture library, so the panel's buttons are built from the source."""
+        sequences = []
+        for name, seq in SEQUENCES.items():
+            sequences.append({
+                "name": name, "duration_s": seq.duration, "priority": seq.priority,
+                "speed_scale": seq.speed_scale, "loop": seq.loop,
+                "triggers": list(seq.triggers), "description": seq.description,
+                "frames": int(round(seq.duration * SAMPLE_HZ)) + 1,
+                "returns_to": list(seq.returns_to) if seq.returns_to else None,
+            })
+        self._json({
+            "ok": True, "sample_hz": SAMPLE_HZ, "sequences": sequences,
+            "home_deg": list(HOME_DEG), "home_perched_deg": list(HOME_PERCHED_DEG),
+            "known_phrases": list(KNOWN_PHRASES),
+            "tools": {k: list(v) for k, v in TOOL_SYNONYMS.items()},
+            "note": ("Gesture timings are validated against declared joint speed budgets at "
+                     "100 Hz minimum jerk. Nothing here has run on a servo, and the wheel "
+                     "commands are open-loop pulse widths with no measured dead band."),
+        })
+
+    def _api_sequence(self, query) -> None:
+        """Every 100 Hz frame of one gesture, ready for the canvas to play."""
+        name = query.get("name", [""])[0]
+        if name not in SEQUENCES:
+            self._error(f"unknown sequence {name!r}; try one of {sorted(SEQUENCES)}")
+            return
+        seq = SEQUENCES[name]
+        frames = seq.sample()
+        peak = [0.0] * len(frames[0].joints)
+        for a, b in zip(frames, frames[1:]):
+            dt = b.t - a.t
+            if dt <= 0.0:
+                continue
+            for i, (x, y) in enumerate(zip(a.joints, b.joints)):
+                peak[i] = max(peak[i], abs(y - x) / dt)
+        self._json({
+            "ok": True, "name": name, "sample_hz": SAMPLE_HZ, "duration_s": seq.duration,
+            "priority": seq.priority, "speed_scale": seq.speed_scale, "loop": seq.loop,
+            "description": seq.description, "triggers": list(seq.triggers),
+            "peak_speed_deg_s": [round(v, 2) for v in peak],
+            "frames": [f.as_dict() for f in frames],
+        })
+
+    def _api_voice(self, query) -> None:
+        """Parse one typed sentence and run it against the simulated robot."""
+        text = query.get("text", [""])[0]
+        intent = parse(text)
+        robot = SimRobotLink(verbose=False)
+        report = Assistant(robot).handle(text)
+        payload = report.as_dict()
+        payload["ok"] = True
+        payload["action_log"] = robot.log
+        payload["note"] = ("Text parsing is deterministic and offline. Speech recognition is a "
+                           "separate, optional front end: see "
+                           "src/phase7_voice_personality/voice_assistant.py --mic")
+        self._json(payload)
 
     def _api_stl(self, name: str) -> None:
         safe = Path(name).name

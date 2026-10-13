@@ -73,9 +73,42 @@ Run `python3 -m unittest discover -s tests -v`; this checks URDF structure, FK/I
   therefore start below `z = 0`; the checks assert a *flat base* rather than `z_min == 0`, and
   the slicer's drop-to-bed is a documented step.
 
+## Added with the Phase 7/8 work
+
+- `src/phase7_voice_personality/personality_engine.py` builds six gestures as 100 Hz
+  minimum-jerk keyframes over 6 joints + 2 wheels. Every segment is validated at construction
+  against a per-channel speed budget (`T >= 1.875 * |dq| / v_max`), so an infeasible gesture
+  raises instead of running. The two speed budgets (transport from Phase 5, gesture for
+  empty-handed expressions) are separate and documented.
+- `voice_assistant.py` parses text deterministically with the standard library only: a machine
+  with no microphone, no model and no internet still gets every command. Speech (Whisper
+  `tiny.en`/`base.en`) is optional, opt-in per utterance, and never a background stream.
+  "Stop" is matched first, on the raw sentence, and is not a substitute for the e-stop.
+- The viewer gained a Voice & personality panel that plays the server's own samples through the
+  same joints the sliders drive, so the drawing and the command stream cannot disagree.
+- `safety_supervisor_and_logger.py` evaluates six faults in a fixed order (hardware e-stop,
+  brownout, cliff, obstacle, over-current, missed grasp) plus stale sensors, and logs every tick
+  to `logs/bude_telemetry.jsonl` with joints, TCP xyz, bus volts, milliamps, wheel pulse widths,
+  cliff states and the supervisor phase. All six injectors pass.
+- The e-stop hold latches and, on release, **overwrites the software targets with the measured
+  joint angles before clearing the latch**, so a sagged arm cannot snap. Measured residual in
+  the injector: 0.000 deg.
+- The 5 ms cliff deadline is explicitly assigned to the ESP32 interrupt handler. The Python
+  supervisor stops the wheels in the same tick it sees the sensor, which is zero software
+  delay — not 5 ms of end-to-end hardware latency, and this repository does not claim it.
+- `run_full_acceptance_suite.py` runs all eight phases and reports **43 / 43 checks PASS** in
+  about 26 s. The unit suite is 72 tests (33 + 39), all passing.
+
 ## Still not demonstrated
 
 No part has been printed or measured. No servo has been powered. No camera photo has been
 taken. No serial port has been opened. No torque, current, temperature, backlash, repeatability
 or stopping-distance figure in this repository has been measured on hardware. Every number
 marked *declared*, *nominal* or *schematic* is a design intent.
+
+Specifically still missing: a gesture vocabulary checked against collision (the Phase 5 keep-outs
+cover task poses, not expressions); a wall-clock latency budget from speech to first servo
+command; measured thresholds for the over-current, brownout, obstacle and missed-grasp
+detectors; wheel dead-band calibration for the two continuous-rotation servos; a firmware
+watchdog that cuts PWM when the host stops talking (FMEA #11); an I²C bus-reset path
+(FMEA #12); and any fatigue or drop test on the printed links.

@@ -43,3 +43,14 @@ pointer-events:none}
 .badge{display:inline-block;padding:1px 6px;border-radius:9px;font-size:10.5px}
 .badge.ok{background:#12351f;color:var(--ok)}
 .badge.bad{background:#3a1a17;color:var(--bad)}
+
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:5px 0}
+.chips button{font-size:11px;padding:4px 7px;text-align:left;line-height:1.25}
+.chips button .dim{font-size:9.5px;color:var(--dim)}
+.chips button.chip{font-size:10.5px;padding:3px 7px;border-radius:11px}
+.dim{color:var(--dim)}
+#p7text{width:100%}
+pre.mini{background:#101319;border:1px solid var(--line);border-radius:6px;padding:7px;
+white-space:pre-wrap;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:6px 0 0;
+max-height:190px;overflow:auto}
+code{background:#101319;border-radius:3px;padding:0 3px;font-size:10.5px}

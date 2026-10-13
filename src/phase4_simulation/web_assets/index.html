@@ -70,6 +70,26 @@
     </section>
 
     <section>
+      <h2>Voice &amp; personality <span class="badge ok">phase 7</span></h2>
+      <div id="p7btns" class="chips">loading gestures&hellip;</div>
+      <div class="row">
+        <input id="p7text" type="text" placeholder="hand me the screwdriver" autocomplete="off">
+      </div>
+      <div class="row btns">
+        <button id="p7go">Say it</button>
+        <button id="p7stop" class="ghost">Stop</button>
+      </div>
+      <div id="p7chips" class="chips"></div>
+      <pre id="p7play" class="mini"></pre>
+      <pre id="p7out" class="mini">loading&hellip;</pre>
+      <p class="hint">Every gesture is sampled by the server from
+        <code>personality_engine.py</code> at 100&nbsp;Hz minimum jerk with zero velocity and
+        zero acceleration at each keyframe, then played here at real speed. Typed commands go
+        through the same deterministic parser the voice front end uses. Nothing in this panel
+        touches a servo, and the mic is never opened.</p>
+    </section>
+
+    <section>
       <h2>Status</h2>
       <pre id="status">loading model&hellip;</pre>
     </section>
@@ -80,5 +100,6 @@
 </div>
 <script src="/static/model.js"></script>
 <script src="/static/app.js"></script>
+<script src="/static/personality.js"></script>
 </body>
 </html>
