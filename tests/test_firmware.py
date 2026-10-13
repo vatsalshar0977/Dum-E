@@ -177,11 +177,11 @@ class SketchSource(unittest.TestCase):
         self.assertIn("ESP_ARDUINO_VERSION_MAJOR", self.text)
 
     def test_fmea_12_bus_recovery_is_implemented_and_used_at_boot(self):
-        self.assertIn("i2cBusRecovery()", self.text)
+        self.assertIn("i2c_bus_recovery()", self.text)
         self.assertIn("nine SCL clocks", self.text.lower().replace("nine scl", "nine SCL"))
         # The recovery must run BEFORE Wire.begin, and the class must be able to cut the OE.
         setup_body = self.text.split("void setup()", 1)[1].split("void loop()", 1)[0]
-        self.assertLess(setup_body.index("i2cBusRecovery()"), setup_body.index("i2cBegin()"),
+        self.assertLess(setup_body.index("i2c_bus_recovery()"), setup_body.index("i2cBegin()"),
                         "the bus is recovered after Wire.begin(), which defeats the purpose")
         self.assertIn("kDisableOutputs", self.text)
         self.assertIn("setServoEnable(false)", self.text)
@@ -272,7 +272,7 @@ class DocsAgree(unittest.TestCase):
                 "not implemented in python", ""),
                 f"FMEA row for the {what} still says not implemented")
         self.assertIn("esp_task_wdt_init", row11)
-        self.assertIn("i2cBusRecovery", row12)
+        self.assertIn("i2c_bus_recovery", row12)
 
     def test_the_wiring_doc_lists_the_new_pins(self):
         wiring = (ROOT / "docs" / "phase3_electronics_and_wiring.md").read_text(encoding="utf-8")

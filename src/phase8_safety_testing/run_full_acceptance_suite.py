@@ -244,6 +244,27 @@ def phase3() -> PhaseReport:
         report.add("the real .ino compiles and runs on a host simulator",
                    code == 0 and match is not None, detail)
 
+    # --- the standalone Phase 3 verifier and the host driver -----------------------------
+    done = subprocess.run([sys.executable, str(ROOT / "src" / "phase3_electronics" /
+                                               "power_and_wiring_verifier.py"), "--json"],
+                          capture_output=True, text=True, timeout=300)
+    try:
+        payload = json.loads(done.stdout)
+        report.add("wiring, config and firmware describe the same robot",
+                   done.returncode == 0 and payload["passed"] == payload["total"],
+                   f"{payload['passed']}/{payload['total']} checks in "
+                   f"src/phase3_electronics/power_and_wiring_verifier.py")
+    except (ValueError, KeyError):
+        report.add("wiring, config and firmware describe the same robot", False,
+                   (done.stdout + done.stderr)[-200:])
+
+    done = subprocess.run([sys.executable, str(ROOT / "src" / "phase3_electronics" /
+                                               "esp32_arm_driver.py"), "--dry-run", "--ping"],
+                          capture_output=True, text=True, timeout=300)
+    report.add("the host serial driver frames commands the firmware defines",
+               done.returncode == 0 and "TX  PING" in done.stdout,
+               "W <left> <right> / M / G / OE, with the mirrored forward pair")
+
     ino = (ROOT / "firmware" / "phase3_full_6dof_esp32" /
            "phase3_full_6dof_esp32.ino").read_text(encoding="utf-8")
     report.add("reflex pins and channels match the brief", all(
@@ -258,7 +279,7 @@ def phase3() -> PhaseReport:
                "survive a blocking read")
     report.add("FMEA #11 watchdog and #12 bus recovery are in the firmware",
                all(needle in ino for needle in ("esp_task_wdt_init", "esp_task_wdt_reset()",
-                                                "i2cBusRecovery()", "kDisableOutputs")),
+                                                "i2c_bus_recovery()", "kDisableOutputs")),
                "task watchdog + 500 ms wheel timeout, and 9-clock I2C recovery at boot and on "
                "every NACK")
     return report

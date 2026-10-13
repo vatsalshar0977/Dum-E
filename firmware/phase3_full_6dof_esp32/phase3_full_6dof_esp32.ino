@@ -15,7 +15,7 @@
  *      to neutral (1500 / 1500 us). No USB serial round trip is involved.
  *   3. FMEA #11: an ESP32 task watchdog, plus a 500 ms host-liveness timeout. Silence from
  *      the laptop while the wheels are turning returns them to neutral by itself.
- *   4. FMEA #12: `i2cBusRecovery()` - nine SCL clocks and a STOP - at boot before
+ *   4. FMEA #12: `i2c_bus_recovery()` - nine SCL clocks and a STOP - at boot before
  *      `Wire.begin()`, and again on every NACK. Three consecutive failures cut the PCA9685
  *      OE pin, because a driver that holds its last pulse width is the worst case there is.
  *
@@ -183,7 +183,7 @@ static uint32_t g_sonar_trig_us = 0;
 // ===========================================================================
 // I2C
 // ===========================================================================
-static void i2cBusRecovery();
+static void i2c_bus_recovery();
 static bool i2cRecoverAndRetry();
 static void handleBusFailure(const char* what);
 
@@ -198,7 +198,7 @@ static void handleBusFailure(const char* what);
  * Both pins are driven OPEN DRAIN, because on a real I2C bus "high" must mean "released",
  * never "actively driven to 3V3 into a slave that is holding the line low".
  */
-static void i2cBusRecovery() {
+static void i2c_bus_recovery() {
   Wire.end();
   pinMode(PIN_I2C_SDA, INPUT_PULLUP);
   pinMode(PIN_I2C_SCL, OUTPUT_OPEN_DRAIN);
@@ -353,7 +353,7 @@ static void handleBusFailure(const char* what) {
 }
 
 static bool i2cRecoverAndRetry() {
-  i2cBusRecovery();
+  i2c_bus_recovery();
   i2cBegin();
   const bool pca_ok = pcaBegin();
   if (pca_ok) {
@@ -927,7 +927,7 @@ void setup() {
   Serial.begin(115200);
 
   // 2. FMEA #12: clear a bus that a previous reset left held low, THEN start Wire.
-  i2cBusRecovery();
+  i2c_bus_recovery();
   i2cBegin();
 
   const bool pca_ok = pcaBegin();

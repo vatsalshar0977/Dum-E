@@ -230,7 +230,7 @@ int main() {
   Serial.feed("W 1320 1680\n");             // get the wheels moving before the bus dies
   runLoops(2);
   injectNackAndRun(g_i2c_errors);
-  check(g_bus.recoveryCount() > recoveries_before, "a NACK triggered i2cBusRecovery + re-init");
+  check(g_bus.recoveryCount() > recoveries_before, "a NACK triggered i2c_bus_recovery + re-init");
   checkInt(static_cast<long>(g_pca_channels[6]), 1500,
            "the bus reset put the wheels back to neutral");
   check(Serial.outputContains("I2C_RECOVER"), "the recovery is reported");

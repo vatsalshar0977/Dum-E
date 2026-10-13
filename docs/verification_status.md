@@ -121,6 +121,31 @@ Run `python3 -m unittest discover -s tests -v`; this checks URDF structure, FK/I
   a measurement; the simulated edge-to-write latency is 237 µs of *simulated* time. FMEA row
   #15 — proving the wheel directions on the floor — is deliberately left to you.
 
+## The walkthrough and the two standalone verifiers
+
+`src/phase8_safety_testing/run_phase_walkthrough.py` runs every phase entry point, in order, and
+saves the verbatim output to `docs/phase_walkthrough_transcript.txt`. All 18 commands exit 0. It
+is deliberately **not** a test: it reports what each script printed about itself. The acceptance
+suite is the thing that fails a build.
+
+Two verifiers were added to close gaps the walkthrough exposed:
+
+* `src/phase3_electronics/power_and_wiring_verifier.py` (18 checks) reads the wiring table, the
+  config and the firmware as three independent descriptions and fails when they disagree — a
+  pin, an address or a channel that drifts between them is a silent failure, not a cosmetic one.
+  Its arithmetic is worth knowing: **all six arm servos stalled would demand 10.5 A from a 5 A
+  supply**, so the arm browns out rather than trips, and 22 AWG is a 3 A wire, not a 5 A one.
+* `src/phase4_simulation/verify_urdf_model.py` (10 checks) walks the URDF's own `<origin>` and
+  `<axis>` data and compares the resulting TCP with the analytic solver. This is how the model
+  and the code are kept from describing different robots. It found a units mismatch
+  (`forward()` is millimetres, URDF is metres) and a yaw-convention discrepancy while it was
+  being written.
+
+`src/phase3_electronics/esp32_arm_driver.py` is the laptop end of the serial link. It frames
+`W / M / G / OE / PING / STATUS / HELP`, never duplicates blending or the reflex (those are the
+ESP32's job), defaults to a dry run, and refuses anything that can move the robot over a real
+port without an explicit `--yes`.
+
 ## Still not demonstrated
 
 No part has been printed or measured. No servo has been powered. No camera photo has been

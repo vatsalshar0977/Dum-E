@@ -233,20 +233,27 @@ def run_ros2(bridge: ArmBridge, target_mm) -> int:
     return 0
 
 
-def main() -> int:
+def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--mode", choices=["python", "ros2"], default="python")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="alias for --mode python: plan offline with the analytic solver and "
+                             "print the stage table without touching ROS 2 or any hardware")
     parser.add_argument("--target", type=float, nargs=3, metavar=("X", "Y", "Z"),
                         default=[150.0, 0.0, 12.0],
                         help="object location on the desk in mm (default 150 0 12)")
     parser.add_argument("--model-current-ma", type=float, default=980.0,
                         help="declared rail current for the stage table; NOT measured")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.dry_run and args.mode != "python":
+        parser.error("--dry-run and --mode ros2 are mutually exclusive")
 
     print("=" * 112)
     print("  PHASE 5 - CARTESIAN PICK AND HANDOVER BRIDGE (schematic model, offline)")
     print("  No hardware driver exists in this repository. No motor has been commanded.")
+    if args.dry_run:
+        print("  DRY RUN: the analytic 5-DOF solver plans this, not MoveIt 2 and not a servo.")
     print("=" * 112)
 
     try:

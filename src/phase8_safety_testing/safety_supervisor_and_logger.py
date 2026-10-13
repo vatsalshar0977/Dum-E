@@ -599,8 +599,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description="B.U.D.-E Phase 8 safety supervisor: six fault injections, one telemetry "
                     "log, no hardware.")
-    parser.add_argument("--fault", choices=FAULTS,
-                        help="run one fault instead of all six")
+    parser.add_argument("--fault", choices=FAULTS + ("all",),
+                        help="run one fault, or 'all' for all six (the default)")
     parser.add_argument("--seconds", type=float, default=4.0,
                         help="length of each injected timeline (default 4 s)")
     parser.add_argument("--hz", type=float, default=CONTROL_HZ)
@@ -616,7 +616,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print("=" * 100)
     print("  PHASE 8 - SAFETY SUPERVISOR, SIX FAULT INJECTIONS (simulated sensors)")
     print("=" * 100)
-    names = (args.fault,) if args.fault else FAULTS
+    names = (FAULTS if args.fault in (None, "all") else (args.fault,))
     results = [injector.run(name, recorder=recorder, echo=args.echo) for name in names]
 
     for result in results:
