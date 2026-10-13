@@ -1,0 +1,95 @@
+# B.U.D.-E ros2_control controller configuration - DRAFT, NOT RUN.
+#
+# Status: hand-written template. There is NO hardware interface plugin in this repository
+# yet, so this file can only be exercised against mock hardware. Before it controls a real
+# arm you must write (or adopt) a `hardware_interface::SystemInterface` that talks to the
+# ESP32, and that interface must:
+#   * reject stale commands (timestamp every setpoint and refuse anything older than a few
+#     control periods),
+#   * require an explicit re-arm after an e-stop instead of resuming motion,
+#   * report measured joint positions - which the hobby servos cannot do unless you fit the
+#     optional 4th-wire potentiometer tap or replace them with servos that have encoders.
+#     Commanded position is NOT measured position; do not present one as the other.
+#
+# Start with mock hardware:
+#   ros2 launch bude_moveit_config demo.launch.py
+#   ros2 launch bude_moveit_config ros2_control.launch.py use_mock_hardware:=true
+#
+controller_manager:
+  ros__parameters:
+    update_rate: 100          # Hz. This is a request, not a guarantee: verify the achieved
+                              # rate on your machine before claiming a real-time loop.
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    bude_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+bude_arm_controller:
+  ros__parameters:
+    joints:
+      - base_yaw
+      - shoulder_pitch
+      - elbow_pitch
+      - wrist_pitch
+      - wrist_roll
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      # - velocity   # only enable if your hardware interface can really measure it
+    # Conservative starting values for a first bench test with no payload. These are NOT
+    # derived from a measured servo. Raise them only after you have timed a real joint.
+    constraints:
+      stopped_velocity_tolerance: 0.05
+      goal_time: 0.5
+      base_yaw:
+        trajectory: 0.5
+        goal: 0.05
+      shoulder_pitch:
+        trajectory: 0.5
+        goal: 0.05
+      elbow_pitch:
+        trajectory: 0.5
+        goal: 0.05
+      wrist_pitch:
+        trajectory: 0.5
+        goal: 0.05
+      wrist_roll:
+        trajectory: 0.5
+        goal: 0.05
+    allow_partial_joints_goal: false
+    open_loop_control: true        # honest: with unmodified hobby servos there is no
+                                   # feedback to close the loop with
+    allow_integration_in_goal_trajectories: false
+
+# ---------------------------------------------------------------------------------------
+# GRIPPER CONTROLLER - commented out on purpose.
+#
+# A GripperActionController needs a joint to command. urdf/bude_arm.urdf has no finger
+# joint: the claw is a single rigid "hand" link. Adding a controller for a joint that does
+# not exist would look complete and do nothing.
+#
+# When you add the two finger joints to the URDF (left_finger driven by the MG90S, right
+# finger coupled by the 1:1 spur gear), then enable:
+#
+# bude_hand_controller:
+#   ros__parameters:
+#     type: position_controllers/GripperActionController   # or JointTrajectoryController
+#     joint: left_finger
+#     action_monitor_rate: 20.0
+#     # `allow_stalling` exists so a gripper can hold an object without a position error
+#     # abort. On this build there is no finger feedback at all, so stalling detection would
+#     # have to come from the INA219 rail current - which measures ALL servos at once and
+#     # cannot attribute a stall to the claw. Fit a dedicated claw current sensor if you
+#     # want a real "grasp detected" signal.
+#     allow_stalling: false
+# ---------------------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------------------
+# ROVER DRIVE (PCA9685 channels 6 and 7) - intentionally not configured here.
+#
+# Continuous-rotation servos have no position feedback and no odometry. Without wheel
+# encoders the base cannot report where it is, so it must not appear as a controllable
+# mobile base in a planner. Drive it with an explicit, supervised command interface and a
+# physical e-stop on the drive rail.
+# ---------------------------------------------------------------------------------------

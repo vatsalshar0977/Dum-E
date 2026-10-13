@@ -143,6 +143,93 @@ class MeshBuilder:
             self.add_quad(it0, ot0, ot1, it1)  # Top annulus
             self.add_quad(ob0, ib0, ib1, ob1)  # Bottom annulus
 
+    def add_wall_cradle(
+        self,
+        cx: float,
+        cy: float,
+        cz: float,
+        ex: float,
+        ey: float,
+        ez: float,
+        wall_t: float,
+        omit: Tuple[str, ...] = (),
+    ) -> None:
+        """Add up to six walls around an interior void of size (ex, ey, ez) centred at (cx, cy, cz).
+
+        `omit` names faces to leave open, e.g. ('+Z',) for an open-top pocket or
+        ('+Y', '+Z') for a pocket you slide a part into from +Y with a deck closing the top.
+        Wall extents run the *full* interior size on the two axes that are not omitted,
+        so an open box still has a clean rim.
+
+        NOTE: like every primitive in this file this ADDS material. It never subtracts a
+        cavity from an intersecting box, so several "pockets" here are pockets only by
+        virtue of their surrounding walls. Inspect cross-sections in a slicer.
+        """
+        hx, hy, hz = 0.5 * ex, 0.5 * ey, 0.5 * ez
+        walls = {
+            "+X": ((cx + hx + 0.5 * wall_t, cy, cz), (wall_t, ey + 2 * wall_t, ez)),
+            "-X": ((cx - hx - 0.5 * wall_t, cy, cz), (wall_t, ey + 2 * wall_t, ez)),
+            "+Y": ((cx, cy + hy + 0.5 * wall_t, cz), (ex, wall_t, ez)),
+            "-Y": ((cx, cy - hy - 0.5 * wall_t, cz), (ex, wall_t, ez)),
+            "+Z": ((cx, cy, cz + hz + 0.5 * wall_t), (ex, ey, wall_t)),
+            "-Z": ((cx, cy, cz - hz - 0.5 * wall_t), (ex, ey, wall_t)),
+        }
+        for face, (centre, size) in walls.items():
+            if face in omit:
+                continue
+            self.add_box(centre[0], centre[1], centre[2], size[0], size[1], size[2])
+
+    def add_hex_tube_z(
+        self,
+        cx: float,
+        cy: float,
+        z_bottom: float,
+        height: float,
+        across_flats_inner: float,
+        wall_t: float,
+    ) -> None:
+        """Add a closed hexagonal ring along +Z, used to MARK an M3 hex-nut trap position.
+
+        A hex nut is 5.5 mm across flats (a cheap-clone M3 nut may measure 5.4-5.8 mm, so
+        measure yours). This ring draws the trap outline; the trap itself must be a Boolean
+        cut in real CAD, which this generator cannot perform.
+        """
+        r_i = across_flats_inner / math.sqrt(3.0)
+        r_o = r_i + wall_t
+        z0, z1 = z_bottom, z_bottom + height
+        for i in range(6):
+            a0 = math.pi / 3.0 * i + math.pi / 6.0
+            a1 = math.pi / 3.0 * (i + 1) + math.pi / 6.0
+            ib0 = (cx + r_i * math.cos(a0), cy + r_i * math.sin(a0), z0)
+            ib1 = (cx + r_i * math.cos(a1), cy + r_i * math.sin(a1), z0)
+            it0 = (cx + r_i * math.cos(a0), cy + r_i * math.sin(a0), z1)
+            it1 = (cx + r_i * math.cos(a1), cy + r_i * math.sin(a1), z1)
+            ob0 = (cx + r_o * math.cos(a0), cy + r_o * math.sin(a0), z0)
+            ob1 = (cx + r_o * math.cos(a1), cy + r_o * math.sin(a1), z0)
+            ot0 = (cx + r_o * math.cos(a0), cy + r_o * math.sin(a0), z1)
+            ot1 = (cx + r_o * math.cos(a1), cy + r_o * math.sin(a1), z1)
+            self.add_quad(ob0, ob1, ot1, ot0)
+            self.add_quad(ib1, ib0, it0, it1)
+            self.add_quad(it0, ot0, ot1, it1)
+            self.add_quad(ob0, ib0, ib1, ob1)
+
+    def mesh_volume_mm3(self) -> float:
+        """Signed volume of the triangle soup by the divergence theorem.
+
+        Every primitive is closed and consistently wound, so the sum is close to the
+        intended solid volume. Where added primitives OVERLAP each other the overlap is
+        counted more than once, so treat this as an UPPER BOUND on printed material.
+        Your slicer's filament estimate is the authoritative number.
+        """
+        total = 0.0
+        for a, b, c in self.triangles:
+            total += (
+                a[0] * (b[1] * c[2] - b[2] * c[1])
+                - a[1] * (b[0] * c[2] - b[2] * c[0])
+                + a[2] * (b[0] * c[1] - b[1] * c[0])
+            )
+        return abs(total) / 6.0
+
     def add_servo_cradle(
         self,
         cx: float,
@@ -205,6 +292,83 @@ class PartSpec:
     infill_pct: int
     supports_needed: str
     purpose: str
+
+
+# =============================================================================
+# DECLARED MATING INTERFACES
+# =============================================================================
+# Every number below is a *source-level declaration*: the generator uses it to build
+# both halves of a mating pair, and verify_print_parts.py checks the two halves agree.
+# Agreement in source is NOT evidence that two printed parts fit. Fit requires a
+# first-article print plus the real component, a caliper, and a test fit with power off.
+#
+# CORRECTION TO AN EARLIER CLAIM: the rover was previously described as bolting to the
+# base at (-52.0, +-8.0) mm "using the exact same 2x M3 holes" as the C-clamp. That is
+# impossible against the geometry in this file: part 03's flange is a 92 mm disc
+# (r = 46 mm), so (-52, +-8) lies outside the printed material (r = 52.6 mm). It also
+# collides with the E-stop housing, which spans x = +41..+75 mm. The rover interface is
+# therefore declared as a 4-bolt circle at r = 36 mm on diagonals, which sits inside the
+# flange and clear of both the J1 servo cradle and the E-stop box.
+BASE_FLANGE_DIAMETER_MM = 92.0
+BASE_FLANGE_RADIUS_MM = BASE_FLANGE_DIAMETER_MM / 2.0
+ROVER_BOLT_CIRCLE_R_MM = 36.0
+ROVER_BOLT_ANGLES_DEG = (45.0, 135.0, 225.0, 315.0)
+M3_CLEARANCE_HOLE_D_MM = 3.4          # free fit for M3
+M3_NUT_ACROSS_FLATS_MM = 5.5          # nominal; MEASURE your bag of nuts
+E_STOP_BOX_MIN_MM = (41.0, -17.0, 0.0)
+E_STOP_BOX_MAX_MM = (75.0, 17.0, 32.0)
+
+# Rover drivetrain declarations. Every one of these must be replaced with a caliper
+# reading from the servo and wheel you actually bought before you trust the fit.
+WHEEL_DIAMETER_MM = 48.0
+WHEEL_THICKNESS_MM = 5.0
+GROUND_GAP_MM = 8.0                   # chassis underside above the floor, assembled
+AXLE_HEIGHT_MM = WHEEL_DIAMETER_MM / 2.0 - GROUND_GAP_MM   # in part-11 coordinates
+DT_SERVO_L_MM, DT_SERVO_W_MM, DT_SERVO_H_MM = 22.8, 12.2, 22.5
+DT_SERVO_SHAFT_OFFSET_MM = 5.8        # shaft centre from body centre along the body length
+CASTER_BALL_D_MM = 12.0
+CASTER_CUP_BORE_MM = 6.4
+
+
+@dataclass(frozen=True)
+class MatingInterface:
+    """One declared joint between two printed parts, or between a part and a component."""
+
+    name: str
+    part_a: str
+    part_b: str
+    parameter: str
+    declared_value: float
+    unit: str
+    verify_with: str
+
+
+MATING_INTERFACES: List[MatingInterface] = [
+    MatingInterface("Rover base bolt circle", "11_mobile_rover_chassis.stl",
+                    "03_base_lower_slewing_ring.stl", "bolt circle radius",
+                    ROVER_BOLT_CIRCLE_R_MM, "mm", "calipers across opposite bolts, assembled"),
+    MatingInterface("Rover base bolt pattern", "11_mobile_rover_chassis.stl",
+                    "03_base_lower_slewing_ring.stl", "bolt angles (4x)",
+                    float(len(ROVER_BOLT_ANGLES_DEG)), "count", "visual + 90 deg spacing check"),
+    MatingInterface("Rover bolt clearance hole", "11_mobile_rover_chassis.stl",
+                    "M3 SHCS", "through hole diameter",
+                    M3_CLEARANCE_HOLE_D_MM, "mm", "M3 screw must drop through, no reaming"),
+    MatingInterface("Rover nut trap", "03_base_lower_slewing_ring.stl",
+                    "M3 hex nut", "across flats",
+                    M3_NUT_ACROSS_FLATS_MM, "mm", "press your own nut in; measure first"),
+    MatingInterface("Drive servo pocket", "11_mobile_rover_chassis.stl",
+                    "continuous-rotation micro servo", "pocket length/width/height",
+                    DT_SERVO_L_MM, "mm", "slide the real servo in with power off"),
+    MatingInterface("Wheel to servo spline", "12_drive_wheels_and_caster.stl",
+                    "servo horn", "hub bore", 4.9, "mm",
+                    "MEASURE your horn spline; 20T micro horns vary by brand"),
+    MatingInterface("Caster ball", "12_drive_wheels_and_caster.stl",
+                    f"steel or glass ball {CASTER_BALL_D_MM:g} mm", "cup bore",
+                    CASTER_CUP_BORE_MM, "mm", "ball must spin freely and not fall through"),
+    MatingInterface("Axle height", "12_drive_wheels_and_caster.stl",
+                    "11_mobile_rover_chassis.stl", "axle above chassis underside",
+                    AXLE_HEIGHT_MM, "mm", "ruler from desk to axle centre, assembled"),
+]
 
 
 def generate_all_parts(out_dir: Path, clearance_mm: float = 0.25) -> List[Tuple[PartSpec, Tuple[float, float, float], int]]:
@@ -278,6 +442,19 @@ def generate_all_parts(out_dir: Path, clearance_mm: float = 0.25) -> List[Tuple[
     # Side-integrated E-Stop switch box with 22.2mm mounting collar for LA38-11ZS mushroom switch
     m03.add_box(58.0, 0.0, 14.0, 34.0, 34.0, 28.0)
     m03.add_tube_z(58.0, 0.0, 28.0, 4.0, 11.1, 15.0, 32)
+    # Rover interface: four M3 hex-nut traps in the UNDERSIDE of the 5 mm base flange.
+    # At r = 36 mm these land in solid flange material, clear of the J1 cradle (out to
+    # x = +-23.8 mm) and clear of the E-stop box (x = +41..+75 mm). A trap is 2.6 mm
+    # deep, leaving ~2.4 mm of flange above it so the screw cannot break into the BB race
+    # that starts at z = 5 mm. These hex rings MARK the trap positions; cut the actual
+    # hex cavity in real CAD.
+    for ang in ROVER_BOLT_ANGLES_DEG:
+        _a = math.radians(ang)
+        m03.add_hex_tube_z(
+            ROVER_BOLT_CIRCLE_R_MM * math.cos(_a),
+            ROVER_BOLT_CIRCLE_R_MM * math.sin(_a),
+            0.0, 2.6, M3_NUT_ACROSS_FLATS_MM, 1.4,
+        )
     spec03 = PartSpec(
         "03_base_lower_slewing_ring.stl",
         "Stationary Base + Slewing Lower Race + E-Stop Box",
@@ -423,6 +600,84 @@ def generate_all_parts(out_dir: Path, clearance_mm: float = 0.25) -> List[Tuple[
         "Neatly mounts ESP32, PCA9685 & INA219 beside the base and routes servo/camera wires with Slack Loops",
     )
 
+    # -------------------------------------------------------------------------
+    # 11: Mobile Rover Chassis (2WD + caster + ultrasonic bumper + cliff sensor slots)
+    # -------------------------------------------------------------------------
+    # GEOMETRY NOTE ON WHEEL SIZE: the brief asked for 64 mm wheels inside a 25 mm tall
+    # chassis. That does not close. A standard micro servo is 12.2 mm across its body
+    # width and its output shaft is centred on that width, so mounting it shaft-outboard
+    # with the axle at wheel radius height puts the servo body centre at z = 24 mm and its
+    # top face at z = 30.1 mm before you add a single wall. A 25 mm chassis is consistent
+    # with roughly 48 mm wheels and an 8 mm ground gap (axle at 16 mm), which is what is
+    # built here. 64 mm wheels need a ~41 mm chassis, a lower ground gap, or N20 gearmotors.
+    m11 = MeshBuilder("11_mobile_rover_chassis")
+    m11.add_box(0.0, 0.0, 22.5, 146.0, 104.0, 5.0)                     # Main deck plate
+    for side in (-1.0, 1.0):
+        m11.add_box(0.0, side * 55.0, 12.5, 44.0, 6.0, 25.0)           # Left/right side plates
+        # Drive-servo pocket: servo lies on its side, shaft exits outboard through the
+        # side plate. Open on the outboard face (slip-in) and open on +Z (deck closes it).
+        m11.add_wall_cradle(
+            -DT_SERVO_SHAFT_OFFSET_MM, side * 40.0, AXLE_HEIGHT_MM,
+            DT_SERVO_L_MM + 0.25, DT_SERVO_H_MM + 0.25, DT_SERVO_W_MM + 0.25,
+            2.5, omit=("+Y" if side > 0 else "-Y", "+Z"),
+        )
+        m11.add_box(70.0, side * 33.0, 11.0, 6.0, 26.0, 22.0)          # Ultrasonic bumper bar
+        # Downward TCRT5000 desk-edge brackets: a stem drops from the deck underside to a
+        # slot that holds the module ~5 mm above the chassis bottom plane. Open top and
+        # bottom so the module slides through and its emitters look straight down.
+        m11.add_box(53.0, side * 25.0, 14.0, 4.0, 18.5, 12.0)          # Bracket stem
+        m11.add_wall_cradle(53.0, side * 25.0, 6.5, 32.5, 14.5, 3.0, 2.0, omit=("-Z", "+Z"))
+    m11.add_wall_cradle(50.0, 0.0, 11.0, 45.5, 20.5, 15.5, 2.5, omit=("+X",))  # HC-SR04 cradle
+    for ang in ROVER_BOLT_ANGLES_DEG:                                  # Base mounting bosses
+        _a = math.radians(ang)
+        m11.add_tube_z(
+            ROVER_BOLT_CIRCLE_R_MM * math.cos(_a),
+            ROVER_BOLT_CIRCLE_R_MM * math.sin(_a),
+            20.0, 5.0, 0.5 * M3_CLEARANCE_HOLE_D_MM, 3.2, 24,
+        )
+    for sy in (-20.0, 20.0):                                           # Rear caster bosses
+        m11.add_tube_z(-64.0, sy, 0.0, 4.0, 0.5 * M3_CLEARANCE_HOLE_D_MM, 3.0, 20)
+    spec11 = PartSpec(
+        "11_mobile_rover_chassis.stl",
+        "Modular 2WD Rover Chassis (deck + drive pockets + ultrasonic bumper + cliff slots)",
+        38.0,
+        "Deck plate down onto the bed, side plates vertical",
+        0.20, 4, 25, "None",
+        "Bolts under the J1 base flange on a 4x M3 circle at r=36mm; carries 2 continuous-rotation drive servos, front HC-SR04 and 2 downward TCRT5000 brackets",
+    )
+
+    # -------------------------------------------------------------------------
+    # 12: Drive Wheels (x2) + Rear Caster Cup
+    # -------------------------------------------------------------------------
+    m12 = MeshBuilder("12_drive_wheels_and_caster")
+    for wy in (-30.0, 30.0):
+        cx, cy = 0.0, wy
+        m12.add_tube_z(cx, cy, 0.0, WHEEL_THICKNESS_MM, 17.0, 22.0, 40)       # Rim band
+        m12.add_tube_z(cx, cy, 0.0, 1.4, 17.0, 24.0, 40)                      # Tire flange (hub side)
+        m12.add_tube_z(cx, cy, WHEEL_THICKNESS_MM - 1.4, 1.4, 17.0, 24.0, 40) # Tire flange (outer)
+        m12.add_tube_z(cx, cy, 0.0, WHEEL_THICKNESS_MM, 2.5, 9.0, 32)         # Hub boss
+        for k in range(6):                                                    # 6 spokes
+            a = math.pi / 3.0 * k
+            r_mid = 13.0
+            m12.add_box(cx + r_mid * math.cos(a), cy + r_mid * math.sin(a),
+                        WHEEL_THICKNESS_MM / 2.0, 9.0, 3.0, WHEEL_THICKNESS_MM)
+        m12.add_tube_z(cx, cy, 0.0, WHEEL_THICKNESS_MM, 2.45, 3.4, 24)        # Horn bore marker
+    # Rear caster: downward-opening cup for a 12 mm ball. Printed mouth-up, so in this
+    # file the cup cap is at z = 0 and the mounting plate sits above it; the print is
+    # flipped over for assembly.
+    m12.add_tube_z(0.0, 0.0, 0.0, 10.0, CASTER_CUP_BORE_MM, 10.0, 36)         # Ball cup
+    m12.add_box(0.0, 0.0, 12.0, 26.0, 26.0, 4.0)                              # Mounting plate
+    m12.add_tube_z(-9.0, 0.0, 10.0, 4.0, 0.5 * M3_CLEARANCE_HOLE_D_MM, 3.0, 18)
+    m12.add_tube_z(9.0, 0.0, 10.0, 4.0, 0.5 * M3_CLEARANCE_HOLE_D_MM, 3.0, 18)
+    spec12 = PartSpec(
+        "12_drive_wheels_and_caster.stl",
+        "2x 48 mm Spoked Drive Wheels + 12 mm Ball Caster Cup",
+        17.0,
+        "Wheels FLAT (axis vertical) and caster cup MOUTH UP; no supports",
+        0.16, 4, 25, "None",
+        "Rubber band or silicone strip sits in the tyre groove for traction; ball caster takes a 12 mm steel/glass ball",
+    )
+
     all_builders = [
         (spec00, m00),
         (spec01, m01),
@@ -435,15 +690,20 @@ def generate_all_parts(out_dir: Path, clearance_mm: float = 0.25) -> List[Tuple[
         (spec08, m08),
         (spec09, m09),
         (spec10, m10),
+        (spec11, m11),
+        (spec12, m12),
     ]
 
     for spec, builder in all_builders:
         stl_path = out_dir / spec.filename
         builder.write_binary_stl(stl_path)
         _, _, bbox_sz = builder.bounding_box()
-        results.append((spec, bbox_sz, len(builder.triangles)))
+        results.append((spec, bbox_sz, len(builder.triangles), builder.mesh_volume_mm3()))
 
     return results
+
+
+PLA_DENSITY_G_PER_CM3 = 1.24
 
 
 def main() -> int:
@@ -463,23 +723,44 @@ def main() -> int:
     args = parser.parse_args()
 
     results = generate_all_parts(args.out_dir, clearance_mm=args.clearance_mm)
+    root = Path(__file__).resolve().parents[2]
 
-    print("=" * 94)
-    print(f"  B.U.D.-E — PHASE 2 GENERATED 3D-PRINTABLE STL MANIFEST (Clearance = {args.clearance_mm:.2f} mm)")
-    print("=" * 94)
-    print(f"{'STL File':<40} {'Bounding Box (X×Y×Z mm)':<26} {'Tris':<7} {'PLA (g)':<9} {'Supports'}")
-    print("-" * 94)
+    print("=" * 116)
+    print(f"  B.U.D.-E - PHASE 2 GENERATED MESH MANIFEST (Clearance = {args.clearance_mm:.2f} mm)")
+    print("  These meshes ADD primitives only: no Boolean cuts, no mating check, no strength check.")
+    print("  Read docs/verification_status.md before printing a functional assembly.")
+    print("=" * 116)
+    print(f"{'STL File':<42} {'Bounding Box (X x Y x Z mm)':<26} {'Tris':<7} "
+          f"{'cm3 solid':>9} {'g solid':>8} {'Declared g':>11}")
+    print("-" * 116)
     total_g = 0.0
-    for spec, sz, tris in results:
+    for spec, sz, tris, vol_mm3 in results:
         total_g += spec.est_filament_g
-        bbox_str = f"{sz[0]:5.1f} × {sz[1]:5.1f} × {sz[2]:4.1f}"
-        print(f"{spec.filename:<40} {bbox_str:<26} {tris:<7d} {spec.est_filament_g:>5.1f} g   {spec.supports_needed}")
-    print("-" * 94)
+        bbox_str = f"{sz[0]:5.1f} x {sz[1]:5.1f} x {sz[2]:4.1f}"
+        print(f"{spec.filename:<42} {bbox_str:<26} {tris:<7d} "
+              f"{vol_mm3 / 1000.0:>9.1f} {vol_mm3 / 1000.0 * PLA_DENSITY_G_PER_CM3:>7.1f} g "
+              f"{spec.est_filament_g:>9.1f} g")
+    print("-" * 116)
     print(
-        f"Total Printable Parts: {len(results)} files in `{args.out_dir.relative_to(Path(__file__).resolve().parents[2])}/` | "
-        f"Total Filament: {total_g:.0f} g (~${total_g * 0.018:.2f} of PLA) | ZERO supports required!"
+        f"Parts: {len(results)} files in `{args.out_dir.relative_to(root)}/`   "
+        f"|  Declared filament total: {total_g:.0f} g  (~${total_g * 0.018:.2f} at $18/kg)"
     )
-    print("=" * 94)
+    print("`g solid` is the mesh volume x PLA density and IGNORES infill and every overlap")
+    print("between added primitives, so it is an UPPER BOUND. Your slicer's estimate rules.")
+    print("=" * 116)
+
+    print()
+    print("=" * 116)
+    print("  DECLARED MATING INTERFACES (source-level agreement only - NOT a fit test)")
+    print("=" * 116)
+    print(f"{'Interface':<26} {'Part A':<34} {'Parameter':<30} {'Value':>10} {'Verify with'}")
+    print("-" * 116)
+    for mi in MATING_INTERFACES:
+        print(f"{mi.name:<26} {mi.part_a:<34} {mi.parameter:<30} "
+              f"{mi.declared_value:>7.2f} {mi.unit:<2} {mi.verify_with}")
+    print("=" * 116)
+    print("Both halves of each pair are built from these same constants, so the MODELS agree.")
+    print("Whether two printed parts fit is decided by a first-article print and a real part.")
     return 0
 
 

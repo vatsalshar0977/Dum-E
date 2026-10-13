@@ -77,3 +77,75 @@ Following our core engineering rule (*"Start with a minimal working version (one
 - **⚠️ Never Print `01_desk_c_clamp_frame.stl` Upright**: Printing a C-clamp vertically puts the Z-layer seams in pure tension, causing it to snap suddenly when tightened. Always print it **flat on its side** with **5 perimeter walls**.
 - **⚠️ Spur-Gear Pinch Point on `09_gripper_geared_fingers_pair.stl`**: Keep fingers clear of the meshing spur-gear teeth on the palm housing while `J6` is powered.
 - **⚠️ Mechanical Hard-Stop Check**: Before powering a newly assembled joint, gently sweep the link by hand across its full travel (while the servo is unpowered or BEFORE screwing the horn tight) to verify wires and brackets do not pinch.
+
+---
+
+# Appendix A — Mobile rover parts, and two corrections to the earlier text
+
+Added in the same session as the Phase 5/6 work. The table above still describes 11 parts and
+still quotes filament weights that were never measured. The authoritative numbers are the ones
+`generate_stl_parts.py` prints, which now includes a **mesh-volume column**.
+
+## A.1 Two new parts (13 total)
+
+| File | Measured bounding box | Tris | Mesh volume | Declared `g` |
+|---|---:|---:|---:|---:|
+| `11_mobile_rover_chassis.stl` | `146.0 × 116.0 × 25.0 mm` | 1424 | 116.3 cm³ | 38 g |
+| `12_drive_wheels_and_caster.stl` | `48.0 × 108.0 × 14.0 mm` | 3548 | 20.0 cm³ | 17 g |
+
+The `g` column is the **mesh volume × PLA density**, which ignores infill *and* counts every
+overlap between added primitives twice. It is an upper bound, not a print estimate. For the
+rover it says 144 g and 25 g of solid material; with 3 walls and 20–25 % infill your slicer
+will report much less, and **your slicer is the authority**. Do not plan a filament budget
+from the declared 38 g / 17 g figures.
+
+The chassis carries: the deck and side plates, two outboard drive-servo pockets (open on the
+outboard face so the servo slides in and its shaft passes through the side plate), the
+HC-SR04 bumper cradle, two TCRT5000 brackets whose stems drop from the deck underside, four
+base-mounting bosses and two rear caster bosses. The wheels are spoked with a tyre groove for
+a rubber band, and the caster cup takes a 12 mm ball.
+
+## A.2 Correction: the "(-52.0, ±8.0) mm, same holes as the C-clamp" claim
+
+The earlier text said the rover bolts to the base "using the exact same 2× M3 holes at
+`(-52.0, ±8.0) mm` as the C-clamp". **That is impossible against the geometry in this
+repository.** Two independent reasons:
+
+1. `03_base_lower_slewing_ring.stl` has a **92 mm disc flange**, so its radius is 46 mm.
+   The point `(-52.0, ±8.0)` is 52.6 mm from the axis — **6.6 mm outside the printed part**.
+2. Even at `x = +52`, that y-range lands inside the E-stop housing, which spans
+   `x = 41…75 mm, y = −17…17 mm, z = 0…32 mm`.
+
+The interface is therefore declared as **4× M3 on a 36.0 mm bolt circle at 45°, 135°, 225°,
+315°**, which sits inside the flange and clears both the J1 servo cradle (out to ±23.8 mm)
+and the E-stop box. `verify_print_parts.py` measures that circle in the vertex data of *both*
+parts and reports the radial error per bolt. Nut traps are 2.6 mm deep in the 5 mm flange,
+leaving about 2.4 mm of material above them so a screw cannot break into the BB race that
+starts at `z = 5 mm`.
+
+**A hole pattern agreeing in source is not a fit.** Print both parts, test-fit with power off,
+and measure across opposite bolts with calipers.
+
+## A.3 Correction: 64 mm wheels do not fit a 25 mm chassis
+
+A standard micro servo is 12.2 mm across its body width and its output shaft is centred on
+that width. Mount it shaft-outboard on a 64 mm wheel and the axle must sit 32 mm above the
+floor, so the servo body centre is at z = 32 mm and its top face reaches **z ≈ 38 mm before
+any wall**. A 25 mm-tall chassis is not compatible with that.
+
+The build therefore uses **48 mm wheels with an 8 mm ground gap**, putting the axle at
+`z = 16 mm` in part coordinates and the servo top at `24.6 mm` — inside a 25 mm part. This is
+recorded as `WHEEL_DIAMETER_MM`, `GROUND_GAP_MM` and `AXLE_HEIGHT_MM` in the generator so you
+can change it deliberately rather than by accident. If you want 64 mm wheels, plan on a
+~40 mm chassis, a smaller ground gap, or N20 gearmotors instead of servos.
+
+## A.4 What the rover does not come with
+
+The declared `$8.00` rover add-on covers two continuous-rotation servos, an HC-SR04 and two
+TCRT5000 modules. It does **not** cover: a rated physical bumper, a separate e-stop for the
+drive rail, wheel encoders (so there is no odometry and no reliable return-to-hand), or a
+containment area. Two uncalibrated reflectance sensors cannot guarantee edge protection —
+they fail on dark, glossy or wet surfaces, and they fail silently. Start on the **floor**, arm
+stowed, supervised, with a physical stop. See
+[Phase 6](phase6_perception_and_mobile_navigation.md) and
+[verification status](verification_status.md).
