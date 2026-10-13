@@ -77,7 +77,7 @@ class ReflexLogic(unittest.TestCase):
 
 @unittest.skipIf(GXX is None, "no C++ compiler available")
 class RealSketchOnHost(unittest.TestCase):
-    """The .ino itself, compiled and driven against simulated hardware. 65 checks."""
+    """The .ino itself, compiled and driven against simulated hardware. 68 checks."""
 
     def test_sketch_compiles_and_passes_its_host_simulation(self):
         code, output = compile_and_run([HOST_STUBS / "main.cpp"],
@@ -130,6 +130,42 @@ class BothCoreGenerations(unittest.TestCase):
             self.assertEqual(code, 0, output[-2000:])
             self.assertIn("PASS:", output)
             self.assertIn("task watchdog timeout is 5 s", output)
+
+
+@unittest.skipIf(GXX is None, "no C++ compiler available")
+class BothSensorConventions(unittest.TestCase):
+    """TCRT5000 modules ship with two output conventions; both must work.
+
+    The whole 67-check harness is rebuilt with `CLIFF_TRIPPED_IS_HIGH` flipped to false. If
+    the sketch only worked one way round, a user with the other module type would find that
+    the rover refuses to move forward on solid ground - or worse, that the reflex never fires.
+    """
+
+    def test_the_inverted_polarity_build_passes_the_same_suite(self):
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            for name in ("Arduino.h", "Wire.h", "esp_err.h", "esp_timer.h", "esp_task_wdt.h",
+                         "esp_arduino_version.h", "main.cpp", "reflex_logic.h"):
+                source = HOST_STUBS / name if name != "reflex_logic.h" else FIRMWARE / name
+                shutil.copy(source, work / name)
+            sketch_text = SKETCH.read_text(encoding="utf-8").replace(
+                "static const bool CLIFF_TRIPPED_IS_HIGH = true;",
+                "static const bool CLIFF_TRIPPED_IS_HIGH = false;")
+            self.assertIn("CLIFF_TRIPPED_IS_HIGH = false;", sketch_text,
+                          "the polarity constant was renamed: this test is no longer testing")
+            (work / SKETCH.name).write_text(sketch_text, encoding="utf-8")
+            main = work / "main.cpp"
+            main.write_text(
+                main.read_text(encoding="utf-8").replace(
+                    '#include "../../firmware/phase3_full_6dof_esp32/phase3_full_6dof_esp32.ino"',
+                    '#include "phase3_full_6dof_esp32.ino"'),
+                encoding="utf-8")
+            code, output = compile_and_run([main], include_dirs=[work])
+            self.assertEqual(code, 0, output[-2500:])
+            self.assertIn("sensor convention under test: tripped = LOW", output)
+            self.assertIn("PASS:", output)
+            self.assertIn("left wheel reversed to 1680 us", output,
+                          "the reflex did not fire with the inverted convention")
 
 
 class SketchSource(unittest.TestCase):
@@ -247,6 +283,19 @@ class SketchSource(unittest.TestCase):
         loop_that_fills = setup_body.index("g_pulse_us[ch] = 1500")
         self.assertLess(loop_that_fills, first_write,
                         "channels were written before the shadow array was filled")
+
+    def test_the_cliff_polarity_is_one_named_constant(self):
+        """A mismatched TCRT5000 breakout must be a one-line fix, not a code edit hunt."""
+        self.assertIn("static const bool CLIFF_TRIPPED_IS_HIGH = true;", self.text)
+        self.assertIn("static bool cliffTripped(int pin)", self.text)
+        # Every reader goes through the helper; a raw comparison would silently keep the old
+        # convention after someone flips the constant.
+        raw_reads = re.findall(r"digitalRead\(PIN_CLIFF_(?:LEFT|RIGHT)\)\s*==\s*(?:HIGH|LOW)",
+                               self.text)
+        self.assertEqual(raw_reads, [],
+                         f"a cliff read bypasses cliffTripped(): {raw_reads}")
+        self.assertIn("const int trip_edge = CLIFF_TRIPPED_IS_HIGH ? RISING : FALLING;",
+                      self.text)
 
     def test_the_wheels_are_declared_mirrored(self):
         # The brief's 1680/1320 reverse pair only makes sense if the servos face each other.

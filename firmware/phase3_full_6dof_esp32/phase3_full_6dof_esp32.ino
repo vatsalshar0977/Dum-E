@@ -101,6 +101,29 @@ using namespace bude;
 static const int PIN_I2C_SDA = 21;
 static const int PIN_I2C_SCL = 22;
 static const int PIN_PCA9685_OE = 4;      // HIGH = outputs disabled (tri-stated)
+// -----------------------------------------------------------------------------------------
+// SENSOR POLARITY — READ THIS BEFORE YOUR FIRST CLIFF TEST
+//
+// TCRT5000 breakouts are sold with two different output conventions, and the difference is
+// not written on the board. As shipped, this firmware assumes the SAFE reading is HIGH:
+//
+//     rover flat on the desk (floor seen)  ->  GPIO 25/26 LOW   ->  STATUS "cliff":[0,0]
+//     rover lifted so the sensor sees air  ->  GPIO 25/26 HIGH  ->  STATUS "cliff":[1,1]
+//
+// The pins are INPUT_PULLUP, so an UNPLUGGED sensor also reads HIGH - i.e. "cliff". That is
+// deliberate: a broken wire leaves the rover unable to drive forward, and the boot log tells
+// you the sensor is missing rather than pretending it is fine.
+//
+// Verify the polarity on your own modules (docs/testing_guide.md, Gate D) before any floor
+// test. If yours reads the other way round, change THIS ONE LINE to `false` and reflash; the
+// reads, the input gate and the interrupt edge all follow it.
+static const bool CLIFF_TRIPPED_IS_HIGH = true;
+
+/** Is the floor missing under this sensor? One definition, used by every reader. */
+static bool cliffTripped(int pin) {
+  return CLIFF_TRIPPED_IS_HIGH ? (digitalRead(pin) == HIGH) : (digitalRead(pin) == LOW);
+}
+
 static const int PIN_CLIFF_LEFT = 25;
 static const int PIN_CLIFF_RIGHT = 26;
 static const int PIN_SONAR_TRIG = 18;
@@ -394,8 +417,8 @@ static void IRAM_ATTR cliffRightIsr() {
 static void serviceCliffReflex() {
   const uint32_t now_ms = millis();
   const uint32_t now_us = static_cast<uint32_t>(esp_timer_get_time());
-  const bool cliff_left = digitalRead(PIN_CLIFF_LEFT) == HIGH;
-  const bool cliff_right = digitalRead(PIN_CLIFF_RIGHT) == HIGH;
+  const bool cliff_left = cliffTripped(PIN_CLIFF_LEFT);
+  const bool cliff_right = cliffTripped(PIN_CLIFF_RIGHT);
 
   const WheelSafety::Output out = g_wheels.update(now_ms, now_us, cliff_left, cliff_right);
   if (!out.changed) {
@@ -627,7 +650,7 @@ static bool wheelForwardAllowed(uint16_t pulse_us, uint8_t ch, uint32_t now_ms) 
   if (!g_wheels.isForward(pulse_us, forward_above)) {
     return true;                                  // reversing away is always allowed
   }
-  if (digitalRead(PIN_CLIFF_LEFT) == HIGH || digitalRead(PIN_CLIFF_RIGHT) == HIGH) {
+  if (cliffTripped(PIN_CLIFF_LEFT) || cliffTripped(PIN_CLIFF_RIGHT)) {
     return false;
   }
   return g_front.allowForward(now_ms);
@@ -776,8 +799,8 @@ static void printStatus() {
                 "\"i2c_recoveries\":%lu,\"i2c_consecutive_failures\":%u,"
                 "\"wdt_ms\":%lu,\"adc34\":%u}\n",
                 g_bus_v, g_current_ma,
-                digitalRead(PIN_CLIFF_LEFT) == HIGH ? 1 : 0,
-                digitalRead(PIN_CLIFF_RIGHT) == HIGH ? 1 : 0,
+                cliffTripped(PIN_CLIFF_LEFT) ? 1 : 0,
+                cliffTripped(PIN_CLIFF_RIGHT) ? 1 : 0,
                 static_cast<unsigned>(g_front.distanceMm()),
                 g_front.readingFresh(millis()) ? "true" : "false",
                 static_cast<unsigned long>(g_sonar_timeouts),
@@ -943,8 +966,10 @@ void setup() {
   g_wheels.update(millis(), static_cast<uint32_t>(esp_timer_get_time()), false, false);
 
   // 4. Interrupts and the watchdog.
-  attachInterrupt(digitalPinToInterrupt(PIN_CLIFF_LEFT), cliffLeftIsr, RISING);
-  attachInterrupt(digitalPinToInterrupt(PIN_CLIFF_RIGHT), cliffRightIsr, RISING);
+  // Watch the transition INTO the tripped state, whichever level that is on your modules.
+  const int trip_edge = CLIFF_TRIPPED_IS_HIGH ? RISING : FALLING;
+  attachInterrupt(digitalPinToInterrupt(PIN_CLIFF_LEFT), cliffLeftIsr, trip_edge);
+  attachInterrupt(digitalPinToInterrupt(PIN_CLIFF_RIGHT), cliffRightIsr, trip_edge);
   attachInterrupt(digitalPinToInterrupt(PIN_SONAR_ECHO), sonarEchoIsr, CHANGE);
   taskWatchdogBegin();
 
@@ -955,10 +980,13 @@ void setup() {
 
   Serial.printf("{\"ok\":true,\"event\":\"BOOT\",\"fw\":\"BUDE-ESP32-full-1.0\","
                 "\"pca9685\":%s,\"ina219\":%s,\"outputs\":\"off\","
-                "\"cliff_pins\":[%d,%d],\"wheel_channels\":[%u,%u],\"recoil_ms\":%lu,"
+                "\"cliff_pins\":[%d,%d],\"cliff_tripped_is_high\":%s,"
+                "\"wheel_channels\":[%u,%u],\"recoil_ms\":%lu,"
                 "\"host_timeout_ms\":%lu,\"wdt_ms\":%lu}\n",
                 pca_ok ? "true" : "false", g_ina_present ? "true" : "false",
-                PIN_CLIFF_LEFT, PIN_CLIFF_RIGHT, static_cast<unsigned>(WHEEL_LEFT_CH),
+                PIN_CLIFF_LEFT, PIN_CLIFF_RIGHT,
+                CLIFF_TRIPPED_IS_HIGH ? "true" : "false",
+                static_cast<unsigned>(WHEEL_LEFT_CH),
                 static_cast<unsigned>(WHEEL_RIGHT_CH),
                 static_cast<unsigned long>(g_wheels.config().recoil_ms),
                 static_cast<unsigned long>(g_wheels.config().command_timeout_ms),

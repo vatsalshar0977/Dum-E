@@ -75,6 +75,25 @@ Wheel channels inside `M`/`G` are applied **immediately** and are never blended:
 wheel command would fight the cliff reflex for ownership of channels 6 and 7, and two writers
 on one safety path is how you lose a safety path.
 
+### ⚠ Check the cliff sensor polarity before anything else (Gate D)
+
+TCRT5000 breakouts ship with two different output conventions and the difference is not written
+on the board. The firmware declares which one it expects in one place:
+
+```cpp
+static const bool CLIFF_TRIPPED_IS_HIGH = true;
+```
+
+With that setting: rover flat on the desk → `STATUS "cliff":[0,0]`; sensor looking into air →
+`[1,1]`. If your modules read the other way round, change that single line to `false` and reflash
+— the reads, the forward gate and the interrupt edge all follow it, and the boot line reports
+which convention is compiled in as `"cliff_tripped_is_high"`. Both conventions are covered by
+`tests/test_firmware.py`.
+
+Note that the pins are `INPUT_PULLUP`, so an **unplugged** sensor reads as a cliff: the rover will
+refuse to drive forward rather than drive blind. That is the safe direction, and it is also the
+thing that will confuse you on the bench — see `docs/testing_guide.md`, Gate D.
+
 ### ⚠ Calibrate the wheel directions before any cliff test
 
 The brief's recoil pair is `1680 / 1320`, which only moves the rover *backward* if the two drive
@@ -106,7 +125,7 @@ g++ -std=c++11 -Wall -Wextra -I tests/firmware_host -o /tmp/fw tests/firmware_ho
   distance guard, with **no** Arduino dependency. 73 checks, all passing.
 * `tests/firmware_host/main.cpp` — the **real `.ino`**, compiled against stub Arduino / ESP32 /
   Wire APIs and driven with a simulated clock, simulated GPIO and a PCA9685 whose register
-  writes are decoded back into pulse widths. 65 checks, all passing: the boot order, a GPIO 25
+  writes are decoded back into pulse widths. 68 checks, all passing: the boot order, a GPIO 25
   edge → both channels reversed inside one loop iteration, the 350 ms recoil, the forward
   refusal, the 500 ms timeout, NACK → recovery → OE cut, and a 400-character serial flood.
 

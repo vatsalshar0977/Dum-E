@@ -122,9 +122,15 @@ static void runLoops(int n, uint32_t us_per_loop = 60) {
   }
 }
 
-/** Pulse a GPIO the way a TCRT5000 output would: it just goes HIGH and stays there. */
+/**
+ * Drive a cliff pin the way a TCRT5000 output would.
+ *
+ * The level that means "tripped" is the sketch's own `CLIFF_TRIPPED_IS_HIGH`, so this harness
+ * works unchanged against both sensor conventions - and `tests/test_firmware.py` rebuilds the
+ * whole thing with the constant flipped to prove it.
+ */
 static void setCliff(int pin, bool tripped) {
-  digitalWrite(pin, tripped ? HIGH : LOW);
+  digitalWrite(pin, (tripped == CLIFF_TRIPPED_IS_HIGH) ? HIGH : LOW);
 }
 
 // ===========================================================================
@@ -154,6 +160,15 @@ int main() {
   check(g_isr_handlers.count(25) == 1 && g_isr_handlers.count(26) == 1,
         "both cliff pins have interrupts attached");
   check(g_isr_handlers.count(19) == 1, "the sonar echo pin has an interrupt attached");
+  check(g_isr_modes.count(25) == 1 && g_isr_modes.count(26) == 1,
+        "both cliff interrupts watch the edge that means 'the floor just vanished'");
+  std::printf("       sensor convention under test: tripped = %s\n",
+              CLIFF_TRIPPED_IS_HIGH ? "HIGH" : "LOW");
+
+  // Sit the rover flat on a desk: both sensors see floor. (An unwired INPUT_PULLUP pin would
+  // read HIGH = trip on real hardware, which is the safe direction but blocks forward.)
+  setCliff(25, false);
+  setCliff(26, false);
 
   // -------------------------------------------------------------------------
   std::printf("\n2. outputs stay off and the rover does not move by itself\n");
