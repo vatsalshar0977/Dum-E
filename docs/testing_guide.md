@@ -100,7 +100,7 @@ Expected, at the end:
   2      0      206 / 206
   3      0      VERDICT: PASS
   ...
-  8      0      125 passed
+  8      0      127 passed
   18 of 18 commands exited 0.
 
   transcript written to docs/phase_walkthrough_transcript.txt (81 KB)
@@ -123,7 +123,7 @@ are looking at.
 python -m pytest -v
 ```
 
-Expected: **`125 passed`** in a few seconds. (The exact count grows as tests are added — the
+Expected: **`127 passed`** in a few seconds. (The exact count grows as tests are added — the
 word to look for is `passed`, and for the absence of `failed` or `error`.)
 
 No pytest? Use the standard library — same tests, plainer output:
@@ -132,7 +132,7 @@ No pytest? Use the standard library — same tests, plainer output:
 python -m unittest tests.test_foundations tests.test_phase5_phase6 tests.test_phase7_phase8 tests.test_firmware tests.test_phase3_tools -v
 ```
 
-Expected: `Ran 125 tests ... OK`.
+Expected: `Ran 127 tests ... OK`.
 
 The suites map to phases:
 
@@ -143,6 +143,7 @@ The suites map to phases:
 | `test_phase7_phase8.py` | the six gestures, the intent parser, the supervisor, the six injected faults |
 | `test_firmware.py` | **compiles and runs the real `.ino`** against a simulated ESP32 (see Step 7) |
 | `test_phase3_tools.py` | the wiring verifier and the serial driver framing |
+| `test_docs.py` | every path and command in this guide and the checklist actually exists |
 
 **If a test fails:** copy the assertion text — it is written to tell you what it expected. Do not
 "fix" a test to make it pass; the tests are the specification.
