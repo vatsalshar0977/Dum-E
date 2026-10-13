@@ -1,5 +1,9 @@
 # Testing B.U.D.-E — the complete step-by-step guide
 
+> In a hurry, or want something to tick off? **`docs/testing_checklist.md`** is the same
+> procedure condensed to checkboxes and pass criteria, with no explanations. This page is the
+> long version: what each test proves, and how to read it when it fails.
+
 **Read this page before you type anything.** It is written so that you can start at Step 1 with a
 laptop and nothing else, and finish at Gate J with an arm that fetches a screwdriver on voice
 command. Every command is copy-paste ready, every expected output is real output from this

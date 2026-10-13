@@ -12,7 +12,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GUIDE = ROOT / "docs" / "testing_guide.md"
+CHECKLIST = ROOT / "docs" / "testing_checklist.md"
 README = ROOT / "README.md"
+# Docs whose commands a reader is invited to type. Every path they mention must exist.
+EXECUTABLE_DOCS = (GUIDE, CHECKLIST, README)
 
 # `src/whatever/file.py` written with either slash, plus firmware sources.
 PATH_PATTERNS = (
@@ -35,24 +38,43 @@ def _paths_in(text):
 
 
 class GuidePaths(unittest.TestCase):
-    def test_the_guide_exists(self):
+    def test_the_guide_and_checklist_exist(self):
         self.assertTrue(GUIDE.exists(), "docs/testing_guide.md is missing")
+        self.assertTrue(CHECKLIST.exists(), "docs/testing_checklist.md is missing")
 
-    def test_every_script_the_guide_tells_you_to_run_exists(self):
-        missing = sorted(path for path in _paths_in(GUIDE.read_text(encoding="utf-8"))
-                         if not (ROOT / path).exists())
-        self.assertEqual(missing, [], f"the testing guide references files that do not exist: "
-                                      f"{missing}")
+    def test_every_path_the_docs_tell_you_to_run_exists(self):
+        for document in EXECUTABLE_DOCS:
+            with self.subTest(document=document.name):
+                missing = sorted(path for path in _paths_in(document.read_text(encoding="utf-8"))
+                                 if not (ROOT / path).exists())
+                self.assertEqual(missing, [],
+                                 f"{document.name} references files that do not exist: {missing}")
 
-    def test_every_script_the_readme_tells_you_to_run_exists(self):
-        missing = sorted(path for path in _paths_in(README.read_text(encoding="utf-8"))
-                         if not (ROOT / path).exists())
-        self.assertEqual(missing, [], f"README.md references files that do not exist: {missing}")
+    def test_every_command_block_in_the_checklist_is_a_real_script(self):
+        """The checklist is nothing but commands; a typo in it wastes a reader's evening."""
+        text = CHECKLIST.read_text(encoding="utf-8")
+        commands = re.findall(r"`([^`]+)`", text)
+        scripts = [c for c in commands if re.search(r"\.(?:py|ino|cpp|exe)", c)]
+        self.assertGreaterEqual(len(scripts), 15, "the checklist lost its commands")
+        for script in scripts:
+            paths = _paths_in(script)
+            for path in paths:
+                self.assertTrue((ROOT / path).exists(), f"checklist runs a missing file: {path}")
 
     def test_the_guide_covers_every_phase(self):
         text = GUIDE.read_text(encoding="utf-8")
         for phase in range(1, 9):
             self.assertIn(f"Phase {phase}", text, f"Phase {phase} is not in the testing guide")
+
+    def test_the_checklist_covers_every_hardware_gate(self):
+        text = CHECKLIST.read_text(encoding="utf-8")
+        for gate in "ABCDEFGHIJ":
+            self.assertIn(f"Gate {gate}", text, f"Gate {gate} is not in the checklist")
+
+    def test_the_two_documents_point_at_each_other(self):
+        """A reader who lands on either one must be able to find the other."""
+        self.assertIn("docs/testing_guide.md", CHECKLIST.read_text(encoding="utf-8"))
+        self.assertIn("testing_checklist.md", GUIDE.read_text(encoding="utf-8"))
 
 
 class GuideHonesty(unittest.TestCase):
