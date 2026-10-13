@@ -20,8 +20,10 @@ import argparse
 import json
 import math
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
@@ -93,6 +95,28 @@ def run_script(relative: str, timeout_s: float = 240.0,
         match = re.search(pattern, output)
         output = match.group(0) if match else output[-400:]
     return done.returncode, output
+
+
+def run_cpp(sources: Sequence[str], include_dirs: Sequence[str] = (),
+            flags: Sequence[str] = ("-std=c++11", "-Wall", "-Wextra")) -> tuple[int, str]:
+    """Compile a C++ program and run it. Returns (exit code, output, or (-1, reason))."""
+    compiler = shutil.which("g++") or shutil.which("clang++")
+    if compiler is None:
+        return -1, "no C++ compiler on this machine"
+    with tempfile.TemporaryDirectory() as folder:
+        binary = str(Path(folder) / "a.out")
+        command = [compiler, *flags]
+        for directory in include_dirs:
+            command.append(f"-I{ROOT / directory}")
+        command += [str(ROOT / item) for item in sources]
+        command += ["-o", binary]
+        build = subprocess.run(command, capture_output=True, text=True, timeout=300)
+        if build.returncode != 0:
+            return build.returncode, f"compiler error:\n{build.stderr[-500:]}"
+        if build.stderr.strip():
+            return 2, f"compiler warnings:\n{build.stderr[-500:]}"
+        done = subprocess.run([binary], capture_output=True, text=True, timeout=300)
+        return done.returncode, done.stdout + done.stderr
 
 
 def _kv(text: str, key: str) -> Optional[float]:
@@ -195,6 +219,48 @@ def phase3() -> PhaseReport:
                stall * 1000.0 > 180.0,
                f"config stops the claw at {stall * 1000:.0f} mA; a missed grasp is under "
                f"180 mA")
+
+    # --- the firmware: compiled and EXECUTED, not just inspected ------------------------
+    code, out = run_cpp(["firmware/phase3_full_6dof_esp32/test_reflex_logic.cpp"],
+                        flags=("-std=c++11", "-Wall", "-Wextra", "-Wpedantic"))
+    if code == -1:
+        report.add("firmware safety logic (g++)", True, f"skipped: {out}")
+    else:
+        match = re.search(r"PASS: (\d+) / (\d+) checks", out)
+        report.add("firmware safety logic executes on the host",
+                   code == 0 and match is not None,
+                   (f"{match.group(1)}/{match.group(2)} checks: reflex timing, the 350/500 ms "
+                    f"rules, the NACK policy, the line parser") if match else out[-160:])
+
+    code, out = run_cpp(["tests/firmware_host/main.cpp"], include_dirs=["tests/firmware_host"])
+    if code == -1:
+        report.add("the real sketch on a host simulator", True, f"skipped: {out}")
+    else:
+        match = re.search(r"PASS: (\d+) / (\d+) checks", out)
+        latency = re.search(r"measured edge -> both channels written: (\d+) us", out)
+        detail = (f"{match.group(1)}/{match.group(2)} checks on the real .ino; simulated "
+                  f"edge-to-write {latency.group(1)} us (budget 5000)"
+                  if match and latency else out[-160:])
+        report.add("the real .ino compiles and runs on a host simulator",
+                   code == 0 and match is not None, detail)
+
+    ino = (ROOT / "firmware" / "phase3_full_6dof_esp32" /
+           "phase3_full_6dof_esp32.ino").read_text(encoding="utf-8")
+    report.add("reflex pins and channels match the brief", all(
+        needle in ino for needle in ("PIN_CLIFF_LEFT = 25", "PIN_CLIFF_RIGHT = 26",
+                                     "WHEEL_LEFT_CH = 6", "WHEEL_RIGHT_CH = 7",
+                                     "PIN_SONAR_TRIG = 18", "PIN_SONAR_ECHO = 19")),
+        "GPIO 25/26 cliffs, GPIO 18/19 sonar, PCA9685 channels 6/7 wheels")
+    report.add("no blocking call in the control loop",
+               not any(banned in ino for banned in ("pulseIn(", "readStringUntil",
+                                                    "Serial.readBytes")),
+               "pulseIn, readStringUntil and readBytes are all absent: the 5 ms budget cannot "
+               "survive a blocking read")
+    report.add("FMEA #11 watchdog and #12 bus recovery are in the firmware",
+               all(needle in ino for needle in ("esp_task_wdt_init", "esp_task_wdt_reset()",
+                                                "i2cBusRecovery()", "kDisableOutputs")),
+               "task watchdog + 500 ms wheel timeout, and 9-clock I2C recovery at boot and on "
+               "every NACK")
     return report
 
 
@@ -433,6 +499,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print("    is a model, every servo figure is a datasheet, and every latency is simulated.")
     print("  * The six Phase 8 faults are synthetic sensor timelines: the supervisor's decisions")
     print("    were exercised, not the hardware's reactions.")
+    print("  * The firmware is compiled by a real C++ compiler and its control flow really runs,")
+    print("    but against stubbed Arduino/ESP32/Wire headers. The I2C peripheral, the GPIO")
+    print("    interrupts, the task watchdog and the servos are models. It has never been")
+    print("    flashed, and the <5 ms cliff reflex is a requirement the sketch checks itself")
+    print("    against - not a measurement.")
+    print("  * The wheel directions are an ASSUMPTION (mirrored servos) that only a floor test")
+    print("    can confirm. Verify before any cliff test: `W 1320 1680` must move the rover")
+    print("    away from you. A wrong sign turns the cliff reflex into the cliff accelerator.")
     print("  * Before any of this touches a hand or a desk edge, do the bring-up checklist in")
     print("    docs/phase8_safety_testing_and_bringup_checklist.md, in order, with the e-stop")
     print("    in reach.")

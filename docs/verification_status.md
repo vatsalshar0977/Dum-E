@@ -99,6 +99,28 @@ Run `python3 -m unittest discover -s tests -v`; this checks URDF structure, FK/I
 - `run_full_acceptance_suite.py` runs all eight phases and reports **43 / 43 checks PASS** in
   about 26 s. The unit suite is 72 tests (33 + 39), all passing.
 
+## Added with the firmware work (`firmware/phase3_full_6dof_esp32/`)
+
+- The full sketch now exists: six arm channels plus both rover wheels on PCA9685 channels 6
+  and 7, a hardware cliff reflex on GPIO 25/26, a non-blocking HC-SR04 on GPIO 18/19, the
+  ESP32 task watchdog, and I²C bus recovery. The PCA9685 and INA219 are driven straight from
+  `Wire` so that a NACK is visible at all — which is what makes FMEA #12 implementable rather
+  than aspirational.
+- **It is compiled and executed on a laptop, not just written.** `reflex_logic.h` holds the
+  safety logic with no Arduino dependency and `test_reflex_logic.cpp` runs it (73 checks);
+  `tests/firmware_host/main.cpp` `#include`s the real `.ino` against stub Arduino / ESP32 /
+  Wire APIs and drives it with a simulated clock, simulated GPIO, and a PCA9685 whose register
+  writes are decoded back into pulse widths (65 checks). `python3 -m unittest tests.test_firmware`
+  runs both, plus source inspection (no `pulseIn`, no `readStringUntil`, no long `delay()`,
+  ISRs that touch nothing but a timer and a flag, and the cliff serviced before the serial port).
+- Two real defects were found and fixed by that harness rather than by review: `W` bypassed the
+  cliff/obstacle gate that `M`/`G` enforced (the primary wheel command could drive off an edge),
+  and the mirrored wheel directions were assumed rather than stated.
+- **Still unflashed.** The I²C peripheral, the GPIO interrupts, the task watchdog and the
+  servos are models. The <5 ms reflex figure is a requirement the sketch measures against, not
+  a measurement; the simulated edge-to-write latency is 237 µs of *simulated* time. FMEA row
+  #15 — proving the wheel directions on the floor — is deliberately left to you.
+
 ## Still not demonstrated
 
 No part has been printed or measured. No servo has been powered. No camera photo has been
@@ -110,5 +132,4 @@ Specifically still missing: a gesture vocabulary checked against collision (the 
 cover task poses, not expressions); a wall-clock latency budget from speech to first servo
 command; measured thresholds for the over-current, brownout, obstacle and missed-grasp
 detectors; wheel dead-band calibration for the two continuous-rotation servos; a firmware
-watchdog that cuts PWM when the host stops talking (FMEA #11); an I²C bus-reset path
-(FMEA #12); and any fatigue or drop test on the printed links.
+fatigue or drop test on the printed links.
