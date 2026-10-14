@@ -1,6 +1,6 @@
 ================================================================================================
   B.U.D.-E — PHASE-BY-PHASE WALKTHROUGH
-  Generated 2026-10-14 14:02:52 by src/phase8_safety_testing/run_phase_walkthrough.py
+  Generated 2026-10-14 14:08:50 by src/phase8_safety_testing/run_phase_walkthrough.py
 ================================================================================================
   Every command below is the command you would type. The output is verbatim.
   NOTHING IN THIS TRANSCRIPT WAS MEASURED ON HARDWARE: no part has been printed,
@@ -891,7 +891,7 @@ $ python3 src/phase8_safety_testing/run_full_acceptance_suite.py
   P7  Voice and personality: six gestures, deterministic parser PASS
   P8  Safety: six injected faults and the telemetry log    PASS
 --------------------------------------------------------------------------------------------------------
-  50 / 50 checks passed in 28.1 s
+  50 / 50 checks passed in 27.3 s
   VERDICT: PASS
 ========================================================================================================
 
@@ -1060,7 +1060,7 @@ tests/test_phase7_phase8.py::Supervisor::test_the_supervisor_trips_before_the_do
 tests/test_phase7_phase8.py::Supervisor::test_unknown_fault_name_is_refused PASSED [ 99%]
 tests/test_phase7_phase8.py::AcceptanceSuite::test_the_master_suite_runs_and_does_not_error PASSED [100%]
 
-=================== 133 passed, 10 subtests passed in 5.62s ====================
+=================== 133 passed, 10 subtests passed in 5.45s ====================
 ------------------------------------------------------------------------------------------------
   -> exit 0 (OK)   summary: 133 passed
 
