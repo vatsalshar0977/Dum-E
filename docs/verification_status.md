@@ -110,7 +110,7 @@ Run `python3 -m unittest discover -s tests -v`; this checks URDF structure, FK/I
   safety logic with no Arduino dependency and `test_reflex_logic.cpp` runs it (73 checks);
   `tests/firmware_host/main.cpp` `#include`s the real `.ino` against stub Arduino / ESP32 /
   Wire APIs and drives it with a simulated clock, simulated GPIO, and a PCA9685 whose register
-  writes are decoded back into pulse widths (73 checks). `python3 -m unittest tests.test_firmware`
+  writes are decoded back into pulse widths (83 checks). `python3 -m unittest tests.test_firmware`
   runs both, plus source inspection (no `pulseIn`, no `readStringUntil`, no long `delay()`,
   ISRs that touch nothing but a timer and a flag, and the cliff serviced before the serial port).
 - Two real defects were found and fixed by that harness rather than by review: `W` bypassed the

@@ -140,10 +140,12 @@ g++ -std=c++11 -Wall -Wextra -I tests/firmware_host -o /tmp/fw tests/firmware_ho
   distance guard, with **no** Arduino dependency. 73 checks, all passing.
 * `tests/firmware_host/main.cpp` — the **real `.ino`**, compiled against stub Arduino / ESP32 /
   Wire APIs and driven with a simulated clock, simulated GPIO and a PCA9685 whose register
-  writes are decoded back into pulse widths. 73 checks, all passing: the boot order, a GPIO 25
+  writes are decoded back into pulse widths. 83 checks, all passing: the boot order, a GPIO 25
   edge → both channels reversed inside one loop iteration, the 350 ms recoil, the forward
   refusal, the 500 ms timeout, NACK → recovery → OE cut, a 400-character serial flood, and
-  the two fail-closed paths: a wall inside the stop distance, and a sonar that stops answering.
+  the two fail-closed paths (a wall inside the stop distance, a sonar that stops answering), and
+  a walk through every command HELP advertises - fed verbatim, because that is the coverage
+  whose absence let a broken `OE 0` survive a whole session of otherwise-green tests.
 
 That is a real compiler and a real execution of the firmware's logic — and it is still **not an
 ESP32**. The I2C peripheral, the interrupts, the watchdog and the servos are models. This

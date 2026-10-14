@@ -199,8 +199,12 @@ static const float INA219_SHUNT_OHMS = 0.1f;
 static const float INA219_CURRENT_LSB_MA = 0.1f;
 
 static uint16_t inaCalibration() {
-  const float lsb_a = INA219_CURRENT_LSB_MA / 1000.0f;
-  const long cal = static_cast<long>(0.04096f / (lsb_a * INA219_SHUNT_OHMS));
+  // double, and rounded: the datasheet formula lands on 4095.9999... for the stock pair, so a
+  // plain truncation silently programs 4095 and every reading is 0.02% high (found by reading
+  // the boot log back, which printed calibration:4095 where this comment promised 4096).
+  const double lsb_a = static_cast<double>(INA219_CURRENT_LSB_MA) / 1000.0;
+  const double cal_f = 0.04096 / (lsb_a * static_cast<double>(INA219_SHUNT_OHMS));
+  const long cal = static_cast<long>(cal_f + 0.5);
   if (cal < 1) {
     return 1;
   }
@@ -932,7 +936,15 @@ static void dispatchLine(const char* line) {
     return;
   }
   if (head == 'o') {
+    // The documented spelling is "OE <0|1>", so the argument starts after the E. Stepping a
+    // single character here (the old behaviour) landed on the 'E' and rejected every OE command
+    // with BAD_COMMAND - i.e. the outputs could never be enabled over serial, and the host
+    // driver in src/phase3_electronics/esp32_arm_driver.py sends exactly "OE 0". Accept both
+    // "OE 0" and the bare "O 0" so a typo is cheap.
     const char* p = line + 1;
+    if (*p == 'E' || *p == 'e') {
+      ++p;
+    }
     while (*p == ' ') {
       ++p;
     }

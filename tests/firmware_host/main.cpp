@@ -86,6 +86,25 @@ static void check(bool ok, const char* what) {
  */
 static const long kTickToleranceUs = 6;
 
+/**
+ * EXACT comparison, for pin LEVELS as opposed to pulse widths.
+ *
+ * checkInt below carries one PCA9685 tick (4.88 us) of tolerance, because that is how the chip
+ * quantises a pulse width. A GPIO level is not a pulse: HIGH is 1 and LOW is 0, so comparing a
+ * level with that tolerance CANNOT fail - the tolerant check applied to the OE pin passed while
+ * the pin was still HIGH, which is exactly how a broken `OE 0` survived a whole session of
+ * green tests. Every pin-level assertion now goes through here.
+ */
+static void checkLevel(int got, int want, const char* what) {
+  ++g_checks;
+  if (got == want) {
+    std::printf("  ok   %s (level %d)\n", what, want);
+  } else {
+    ++g_failures;
+    std::printf("  FAIL %s: got level %d, wanted %d\n", what, got, want);
+  }
+}
+
 static void checkInt(long got, long want, const char* what) {
   ++g_checks;
   const long delta = (got > want) ? (got - want) : (want - got);
@@ -175,7 +194,7 @@ int main() {
   g_wdt_already_initialised = false;
   setup();
 
-  checkInt(digitalRead(4), HIGH, "PCA9685 OE is HIGH (outputs tri-stated) after boot");
+  checkLevel(digitalRead(4), HIGH, "PCA9685 OE is HIGH (outputs tri-stated) after boot");
   check(!g_servo_enabled, "the sketch believes the outputs are off");
   check(g_pca_writes >= 1, "one full 8-channel neutral write happened at boot (no random pulses)");
   for (uint8_t ch = 0; ch < 8; ++ch) {
@@ -290,7 +309,7 @@ int main() {
     injectNackAndRun(g_i2c_errors);
   }
   check(!g_servo_enabled, "three consecutive failures cut the PCA9685 OE pin");
-  checkInt(digitalRead(4), HIGH, "OE pin is HIGH (outputs tri-stated)");
+  checkLevel(digitalRead(4), HIGH, "OE pin is HIGH (outputs tri-stated)");
   check(Serial.outputContains("I2C_BUS_DEAD"), "the dead bus is reported");
 
   // -------------------------------------------------------------------------
@@ -349,10 +368,10 @@ int main() {
   Serial.clearOutput();
   Serial.feed("OE 1\n");
   runLoops(2);
-  checkInt(digitalRead(4), HIGH, "OE 1 tri-states the outputs");
+  checkLevel(digitalRead(4), HIGH, "OE 1 tri-states the outputs");
   Serial.feed("OE 0\n");
   runLoops(2);
-  checkInt(digitalRead(4), LOW, "OE 0 enables the outputs again");
+  checkLevel(digitalRead(4), LOW, "OE 0 enables the outputs again");
 
   // -------------------------------------------------------------------------
   std::printf("\n11. serial robustness: junk, floods and unknown commands\n");
@@ -416,6 +435,40 @@ int main() {
   checkInt(static_cast<long>(g_pca_channels[6]), 1500,
            "a STALE reading refuses forward instead of driving blind");
   check(Serial.outputContains("FORWARD_REFUSED"), "the stale-sensor refusal is reported");
+
+
+  // -------------------------------------------------------------------------
+  std::printf("\n15. the DOCUMENTED protocol, verbatim: every command in HELP must be accepted\n");
+  // HELP prints these exact strings. If a routine here is refused, the firmware and its own
+  // documentation disagree - which is precisely how `OE 0` stayed broken: the parser stepped
+  // one character past the 'O' and landed on the 'E', and the only OE test compared pin levels
+  // with a pulse-width tolerance, so 1-vs-0 passed. These checks feed the literal strings.
+  setFrontDistance(300);
+  const char* routine[] = {"PING", "W 1500 1500", "M 0:1500", "G 200 0:1500",
+                           "OE 1", "OE 0", "STATUS", "HELP"};
+  for (unsigned i = 0; i < sizeof(routine) / sizeof(routine[0]); ++i) {
+    Serial.clearOutput();
+    Serial.feed(std::string(routine[i]) + "\n");
+    runLoops(3);
+    const std::string& reply = Serial.output();
+    const bool ok = reply.find("\"ok\":true") != std::string::npos ||
+                    reply.find("\"ok\": true") != std::string::npos;
+    char what[128];
+    std::snprintf(what, sizeof(what), "the documented command \"%s\" is accepted", routine[i]);
+    check(ok, what);
+    if (!ok) {
+      std::printf("       the sketch replied: %s", reply.c_str());
+    }
+  }
+  // and the two commands whose EFFECT the documentation promises, checked exactly:
+  Serial.feed("OE 1\n");
+  runLoops(3);
+  checkLevel(digitalRead(4), HIGH, "OE 1 (as documented) tri-states the outputs");
+  Serial.feed("OE 0\n");
+  runLoops(3);
+  checkLevel(digitalRead(4), LOW, "OE 0 (as documented) enables the outputs");
+  Serial.feed("OE 1\n");
+  runLoops(3);                              // leave the rig in the safe state
 
 
   if (g_failures == 0) {

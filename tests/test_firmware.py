@@ -327,6 +327,37 @@ class SketchSource(unittest.TestCase):
             cal = int(0.04096 / ((lsb_ma / 1000.0) * ohms))
             self.assertEqual(cal, 4096, f"{ohms} ohm at {lsb_ma} mA/bit gives cal={cal}")
 
+    def test_the_oe_branch_accepts_its_documented_spelling(self):
+        """`OE <0|1>` is what HELP, the docs and esp32_arm_driver.py all use.
+
+        The parser stepped a single character past the 'O', landed on the 'E' and answered
+        BAD_COMMAND to every OE command - so the servo outputs could never be enabled over
+        serial. This asserts the branch skips the E before reading the argument.
+        """
+        branch = self.text.split("if (head == 'o')", 1)[1].split("if (head == 'p')", 1)[0]
+        self.assertIn("*p == 'E'", branch, "the OE parser no longer tolerates the 'E'")
+        self.assertIn("++p;", branch)
+
+    def test_the_host_harness_checks_pin_levels_exactly(self):
+        """A GPIO level is 0 or 1; comparing it with a pulse-width tolerance cannot fail.
+
+        That is how the broken `OE 0` survived a full session of green tests: the OE checks
+        used `checkInt`, whose tolerance is one PCA9685 tick (4.88 us), so level 1 vs wanted 0
+        passed. Pin levels now go through `checkLevel`.
+        """
+        harness = (ROOT / "tests" / "firmware_host" / "main.cpp").read_text()
+        self.assertIn("static void checkLevel(", harness)
+        self.assertNotIn("checkInt(digitalRead(", harness,
+                         "a pin level is being compared with the pulse-width tolerance again")
+
+    def test_the_harness_walks_the_documented_protocol(self):
+        """Every command HELP advertises must be fed verbatim and answered with ok:true."""
+        harness = (ROOT / "tests" / "firmware_host" / "main.cpp").read_text()
+        for command in ('"PING", "W 1500 1500", "M 0:1500", "G 200 0:1500"',
+                        '"OE 1", "OE 0", "STATUS", "HELP"'):
+            self.assertIn(command, harness,
+                          f"the routine list lost {command}: the protocol can drift from HELP")
+
     def test_the_i2c_timeout_is_inside_the_reflex_budget(self):
         """A wedged bus must not be able to stall the loop for longer than the deadline.
 

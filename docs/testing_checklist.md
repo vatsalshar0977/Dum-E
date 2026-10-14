@@ -25,7 +25,7 @@ this robot · never leave a stalled servo powered · one change at a time.
 - [ ] **3. Whole project, one command** — `python src\phase8_safety_testing\run_phase_walkthrough.py`
       → last line **`18 of 18 commands exited 0`**
 - [ ] **4. Unit tests** — from the repo folder: `cd "$R"; python -m pytest -v`, or from anywhere:
-      `python -m pytest "$R\tests" -v` → **`139 passed`**, 0 failed (the count grows as
+      `python -m pytest "$R\tests" -v` → **`142 passed`**, 0 failed (the count grows as
       tests are added; what matters is no `failed`, no `error`, and skips only where a tool is absent). If you get
       `No module named 'src'`, pytest did not find the repo root — `cd` first
 - [ ] **5. Acceptance suite** — `python src\phase8_safety_testing\run_full_acceptance_suite.py`
@@ -36,7 +36,7 @@ this robot · never leave a stalled servo powered · one change at a time.
       `python src\phase2_mechanical\verify_assembly_fit.py` → **`TOTAL 206 / 206 checks PASS`**
 - [ ] **7. Firmware, compiled and executed** —
       `g++ -std=c++11 -Wall -Wextra -Wpedantic -o reflex.exe firmware\phase3_full_6dof_esp32\test_reflex_logic.cpp` then `.\reflex.exe` → `PASS: 73 / 73`
-      `g++ -std=c++11 -Wall -Wextra -I tests\firmware_host -o fw.exe tests\firmware_host\main.cpp` then `.\fw.exe` → `PASS: 73 / 73` (the last two sections prove the sonar fails closed)
+      `g++ -std=c++11 -Wall -Wextra -I tests\firmware_host -o fw.exe tests\firmware_host\main.cpp` then `.\fw.exe` → `PASS: 83 / 83` (sections 13-15 prove the sonar fails closed and that every documented command is accepted)
 - [ ] **8. Pinout agreement** — `python src\phase3_electronics\power_and_wiring_verifier.py`
       → `VERDICT: PASS — 18 / 18`
 - [ ] **9. URDF vs solver** — `python src\phase4_simulation\verify_urdf_model.py`
