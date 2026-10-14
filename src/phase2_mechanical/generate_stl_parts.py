@@ -1433,8 +1433,13 @@ def build_11() -> Tuple[PartSpec, MeshBuilder]:
                        DECK_TOP_MM - DECK_T_MM)
         m.add_wall_cradle(53.0, side * 25.0, 6.5, 32.5, 14.5, 3.0, 2.0, omit=("-Z", "+Z"))
     m.add_wall_cradle(50.0, 0.0, 11.0, 45.5, 20.5, 15.5, 2.5, omit=("+X",))
+    # Front bumper bosses. These used to stop 16 mm short of the deck with nothing joining
+    # them to anything, so the slicer printed two loose rings: the deep CAD audit catches that
+    # now. They are pillars from the bed to the deck underside, which prints as one body and
+    # still gives a bolt something to bite from below.
     for sy in (-20.0, 20.0):
-        m.add_tube_z(-64.0, sy, 0.0, 4.0, M3_CLEARANCE_HOLE_D_MM / 2.0, 3.0, 20)
+        m.add_tube_z(-64.0, sy, 0.0, DECK_TOP_MM - DECK_T_MM,
+                     M3_CLEARANCE_HOLE_D_MM / 2.0, 3.0, 20)
     spec = PartSpec(
         "11_mobile_rover_chassis.stl", "Modular 2WD rover chassis", 42.0,
         "Deck down, side plates vertical", 0.20, 4, 25, "None",
@@ -1444,7 +1449,9 @@ def build_11() -> Tuple[PartSpec, MeshBuilder]:
          f"z = {DECK_TOP_MM - DECK_T_MM:.0f} mm by "
          f"{(DECK_TOP_MM - DECK_T_MM) - (AXLE_HEIGHT_MM + DT_SERVO_ALONG_AXIS_MM / 2.0):.1f} mm.",
          "The 8 mm gap in the previous revision put the servo body 2.1 mm INSIDE the deck.",
-         "The four base bolt holes are true through-openings in the deck plate."])
+         "The four base bolt holes are true through-openings in the deck plate.",
+         "The two front bumper bosses run as pillars from z = 0 to the deck underside, so the "
+         "chassis prints as one body."])
     return spec, m
 
 

@@ -74,6 +74,26 @@ from generate_stl_parts import (                                                
     J5_AXIS_Z_IN_07, J6_AXIS_X_IN_08, J6_AXIS_Z_IN_08,
 )
 
+# How many separate pieces each file is DESIGNED to print as. A union of overlapping
+# primitives is one piece; a screw and its pad, a pair of fingers, two wheels and a caster are
+# deliberately several. Anything else - a plate that floats 2 mm off the part it belongs to -
+# is a defect, and the check below now fails on it instead of shrugging at "<= 8 bodies".
+DECLARED_BODIES = {
+    "00_tolerance_test_coupon.stl": 1,
+    "01_desk_c_clamp_frame.stl": 1,
+    "02_desk_c_clamp_screw_and_pad.stl": 2,
+    "03_base_lower_slewing_ring.stl": 1,
+    "04_base_upper_turret_j2.stl": 1,
+    "05_upper_arm_link_80mm.stl": 1,
+    "06_forearm_link_75mm.stl": 1,
+    "07_wrist_pitch_roll_bracket.stl": 1,
+    "08_gripper_body_and_cam_mount.stl": 1,
+    "09_gripper_geared_fingers_pair.stl": 2,
+    "10_cable_clips_and_electronics_tray.stl": 1,
+    "11_mobile_rover_chassis.stl": 1,
+    "12_drive_wheels_and_caster.stl": 3,
+}
+
 PLA_DENSITY_G_CM3 = 1.24
 PRINTER_ERR_MM = 0.15          # per side, consumer FDM, as declared in the docs
 BED_MM = 180.0
@@ -248,11 +268,11 @@ def audit_topology(name: str, mesh: Mesh, quick: bool) -> None:
     clusters: Dict[int, List[int]] = {}
     for i in range(len(comps)):
         clusters.setdefault(find(i), []).append(i)
-    record("topology", f"{name} :: prints as the intended number of bodies",
-           len(clusters) <= 8,
-           f"{len(clusters)} touching/overlapping body clusters "
-           f"({len(comps)} edge-disjoint solids; a union of overlapping primitives shows as "
-           f"many)")
+    want = DECLARED_BODIES.get(name, 1)
+    record("topology", f"{name} :: prints as {want} piece(s), not more",
+           len(clusters) == want,
+           f"{len(clusters)} body cluster(s) of touching/overlapping material for a declared "
+           f"{want}; {len(comps)} edge-disjoint solid(s) went in")
 
     if not quick and len(comps) > 1:
         # Multi-body files are deliberate (a pair of fingers, two wheels and a caster), but a

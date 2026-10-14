@@ -31,6 +31,9 @@ known_issues = {
     ("placement :: J5 MG90S in the wrist", "case 12.2 mm fits along Y"),
     ("placement :: J5 MG90S in the wrist", "case still fits at worst-case print error"),
     ("placement :: tray", "all three boards fit without stacking"),
+    ("topology :: 05_upper_arm_link_80mm.stl", "prints as 1 piece(s), not more"),
+    ("topology :: 06_forearm_link_75mm.stl", "prints as 1 piece(s), not more"),
+    ("topology :: 07_wrist_pitch_roll_bracket.stl", "prints as 1 piece(s), not more"),
 }
 
 
