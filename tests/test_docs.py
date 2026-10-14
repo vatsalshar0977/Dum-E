@@ -133,6 +133,37 @@ class SetupCheck(unittest.TestCase):
                           f"the setup check does not offer to run {module}")
 
 
+class BranchMarkers(unittest.TestCase):
+    """`check_setup.py` tells a wrong-branch download from an incomplete extraction.
+
+    The marker list is only useful if it is TRUE: each entry must exist on this branch. A typo
+    or a renamed file would silently turn every user's setup check into "WRONG BRANCH".
+    """
+
+    def setUp(self):
+        text = (ROOT / "check_setup.py").read_text(encoding="utf-8")
+        start = text.index("BRANCH_MARKERS")
+        end = text.index(")", text.index("cad/stl/11_mobile_rover_chassis.stl"))
+        self.markers = re.findall(r'"([^"]+)"', text[start:end])
+
+    def test_there_are_enough_markers_to_spot_a_wrong_branch(self):
+        self.assertGreaterEqual(len(self.markers), 5)
+        self.assertIn("src/phase8_safety_testing/run_phase_walkthrough.py", self.markers)
+
+    def test_every_marker_exists_on_this_branch(self):
+        for marker in self.markers:
+            with self.subTest(marker=marker):
+                self.assertTrue((ROOT / marker).exists(),
+                                f"check_setup.py claims {marker} marks this branch, but it is "
+                                f"not in the tree - the setup check would misdiagnose every "
+                                f"user as being on the wrong branch")
+
+    def test_the_download_instructions_point_at_this_branch(self):
+        text = (ROOT / "check_setup.py").read_text(encoding="utf-8")
+        self.assertIn("archive/refs/heads/", text)
+        self.assertIn("git clone -b", text)
+
+
 class FirmwarePolarityDocs(unittest.TestCase):
     """The one-line polarity fix must be documented where someone will find it."""
 

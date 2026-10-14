@@ -78,8 +78,26 @@ then confirm with `dir` that you can see `README.md`, `src`, `docs`, `firmware`,
 * **`C++ compiler : NOT FOUND (OPTIONAL)`** — six unit tests skip and two acceptance checks report
   `skipped: no C++ compiler`. Everything else runs. Step 2 has the install options.
 
-**If it reports `key files: N/12` with names listed:** the download or the extraction was
-incomplete. Delete the folder and extract the ZIP again from scratch rather than patching it up.
+**If it reports `content : WRONG BRANCH OR OLD SNAPSHOT`:** you have the right idea and the wrong
+download. `main` does **not** contain the Phase 5–8 work, the firmware or this guide, so those
+commands fail with `No such file or directory` — the *same* error you get from being in the wrong
+folder. Two ways to fix it:
+
+```powershell
+# either: download this branch (the folder extracts as Dum-E-arena-dc4957e8-dum-e)
+#   https://github.com/vatsalshar0977/Dum-E/archive/refs/heads/arena/dc4957e8-dum-e.zip
+
+# or: clone once, then `git pull` for every future update
+git clone -b arena/dc4957e8-dum-e https://github.com/vatsalshar0977/Dum-E.git bude
+```
+
+The ZIP filename tells you which branch you got: **`Dum-E-main.zip`** is the wrong one,
+**`Dum-E-arena-dc4957e8-dum-e.zip`** is this one. A ZIP is also a snapshot of the branch tip at
+the moment you downloaded it — if `content` reports *some but not all* markers, your snapshot is
+simply older than the current tip; re-download or clone.
+
+**If it reports `key files: N/12` with names listed:** the extraction was incomplete. Delete the
+folder and extract the ZIP again from scratch rather than patching it up.
 
 **If a file you can see in Explorer is reported as missing:** the folder is inside OneDrive and
 the file is a cloud-only placeholder. Right-click the folder → **Always keep on this device**.
@@ -134,7 +152,7 @@ Expected, at the end:
   2      0      206 / 206
   3      0      VERDICT: PASS
   ...
-  8      0      128 passed
+  8      0      131 passed
   18 of 18 commands exited 0.
 
   transcript written to docs/phase_walkthrough_transcript.txt (81 KB)
@@ -157,7 +175,7 @@ are looking at.
 python -m pytest -v
 ```
 
-Expected: **`128 passed`** in a few seconds. (The exact count grows as tests are added — the
+Expected: **`131 passed`** in a few seconds. (The exact count grows as tests are added — the
 word to look for is `passed`, and for the absence of `failed` or `error`.)
 
 No pytest? Use the standard library — same tests, plainer output:
@@ -166,7 +184,7 @@ No pytest? Use the standard library — same tests, plainer output:
 python -m unittest tests.test_foundations tests.test_phase5_phase6 tests.test_phase7_phase8 tests.test_firmware tests.test_phase3_tools -v
 ```
 
-Expected: `Ran 128 tests ... OK`.
+Expected: `Ran 131 tests ... OK`.
 
 The suites map to phases:
 
@@ -408,6 +426,7 @@ atoms.
 | `g++: command not found` | no C++ compiler | Step 2; the firmware tests skip without one |
 | `can't open file '...\src\...'` | the relative path resolved against a folder you are not in | `python check_setup.py`, or run it by absolute path: `python "C:\full\path\to\src\phase8_safety_testing\run_phase_walkthrough.py"` |
 | `fatal: not a git repository` | the folder is a ZIP download, not a clone | expected — Step 1 shows how to clone or re-download |
+| `No such file or directory` for a file that should exist, from the **right** folder | wrong branch (`main` has no Phase 5–8) or an old snapshot | `python check_setup.py` — the `content` line names which branch you actually have |
 | `g++ is not recognized` | no C++ compiler | optional — Step 2. Without it 6 tests skip; everything else runs |
 | a file visible in Explorer is "missing" | OneDrive cloud-only placeholder | right-click the folder → "Always keep on this device" |
 | `ModuleNotFoundError: src` | run from the wrong folder | `cd` to the repository root (the folder containing `README.md`) |

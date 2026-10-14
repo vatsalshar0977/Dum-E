@@ -24,6 +24,27 @@ from typing import List, Optional, Sequence, Tuple
 ROOT = Path(__file__).resolve().parent
 MIN_PYTHON = (3, 9)
 
+# Files that exist ONLY on this branch. Derived with:
+#     comm -23 <(git ls-tree -r --name-only origin/arena/dc4957e8-dum-e | sort) \
+#              <(git ls-tree -r --name-only origin/main | sort)
+# 49 files qualify; these seven span the whole branch, so a `main` download or an old snapshot
+# fails on every one of them. If you add a phase, add a marker.
+BRANCH_MARKERS: Sequence[str] = (
+    "src/phase8_safety_testing/run_phase_walkthrough.py",
+    "src/phase7_voice_personality/personality_engine.py",
+    "src/phase3_electronics/esp32_arm_driver.py",
+    "src/phase4_simulation/web_sim_server.py",
+    "firmware/phase3_full_6dof_esp32/phase3_full_6dof_esp32.ino",
+    "docs/testing_guide.md",
+    "cad/stl/11_mobile_rover_chassis.stl",
+)
+
+BRANCH_NAME = "arena/dc4957e8-dum-e"
+ZIP_URL = f"https://github.com/vatsalshar0977/Dum-E/archive/refs/heads/{BRANCH_NAME}.zip"
+ZIP_FOLDER = "Dum-E-" + BRANCH_NAME.replace("/", "-")
+CLONE_CMD = (f"git clone -b {BRANCH_NAME} "
+             "https://github.com/vatsalshar0977/Dum-E.git bude")
+
 # The files whose absence means "you are not in the repository, or your ZIP downloaded badly".
 KEY_FILES: Sequence[str] = (
     "README.md",
@@ -109,10 +130,37 @@ def main() -> int:
         _row("key files", f"{len(KEY_FILES) - len(missing)}/{len(KEY_FILES)} present - MISSING:")
         for name in missing:
             print(f"                   {name}")
-        print("                 If this folder is empty or half-populated, your download was")
-        print("                 incomplete: re-download the branch ZIP and extract it fully.")
+        print("                 Either the extraction was incomplete, or this is a different")
+        print("                 branch - see the `content` line below.")
     else:
         _row("key files", f"{len(KEY_FILES)}/{len(KEY_FILES)} present  OK")
+
+    # ---- which snapshot of the repo is this? -------------------------------------------
+    # A ZIP is a snapshot of the branch tip at download time, and `main` does not contain the
+    # Phase 5-8 work at all. Both mistakes produce the SAME error message as being in the
+    # wrong folder ("No such file or directory"), so name the cause explicitly.
+    present = [marker for marker in BRANCH_MARKERS if (ROOT / marker).exists()]
+    if len(present) == len(BRANCH_MARKERS):
+        _row("content", f"{BRANCH_NAME} - all {len(BRANCH_MARKERS)} branch markers present  OK")
+    else:
+        _row("content", f"WRONG BRANCH OR OLD SNAPSHOT - only {len(present)}/"
+                        f"{len(BRANCH_MARKERS)} files from this branch are present")
+        for marker in BRANCH_MARKERS:
+            if marker not in present:
+                print(f"                   missing: {marker}")
+        print("                 `main` does NOT contain the Phase 5-8 work, the firmware or the")
+        print("                 testing guide, so this is most likely a download of the wrong")
+        print("                 branch - or a snapshot taken before it existed.")
+        print("                 Download the branch ZIP (it extracts as a folder named")
+        print(f"                 {ZIP_FOLDER}):")
+        print(f"                   {ZIP_URL}")
+        print("                 A ZIP of `main` is named Dum-E-main - if that is your folder,")
+        print("                 that is the problem, not your commands.")
+        print("                 Or clone it once and update with `git pull` afterwards:")
+        print(f"                   {CLONE_CMD}")
+        # The essentials are not there: whether it is the wrong branch or a bad extraction,
+        # following the steps above is the fix, so fail the check.
+        essentials_ok = False
 
     # ---- optional: pytest --------------------------------------------------------------
     pytest_version = _module_version("pytest")
