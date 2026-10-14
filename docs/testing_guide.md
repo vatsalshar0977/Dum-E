@@ -215,20 +215,38 @@ are looking at.
 
 ## Step 4 — The unit tests
 
+**From the repository folder** (the simplest correct invocation):
+
 ```powershell
+cd "$R"
 python -m pytest -v
 ```
 
-Expected: **`131 passed`** in a few seconds. (The exact count grows as tests are added — the
-word to look for is `passed`, and for the absence of `failed` or `error`.)
+Expected: **`133 passed`** in a few seconds. (The count grows as tests are added — what matters is
+`passed`, and the absence of `failed` or `error`.)
 
-No pytest? Use the standard library — same tests, plainer output:
+**From anywhere else**, either form works, because `conftest.py` and `pytest.ini` in the repo root
+put the repository on the import path:
 
 ```powershell
-python -m unittest tests.test_foundations tests.test_phase5_phase6 tests.test_phase7_phase8 tests.test_firmware tests.test_phase3_tools -v
+python -m pytest "$R	ests" -v
+python -m pytest "$R" -q
 ```
 
-Expected: `Ran 131 tests ... OK`.
+> **If you see `ModuleNotFoundError: No module named 'src'`**, pytest did not find the repository
+> root: the test modules import the project as `src.phase5_control...`, and that import needs the
+> repo root on `sys.path`. `python -m pytest` only adds the *current working directory*.
+> Symptom: `rootdir` in the header is your home folder rather than the repo. The two commands
+> above fix it; so does `cd`-ing first. This was a real bug in an earlier version of this guide —
+> the bootstrap files exist now precisely so the absolute-path form works.
+
+No pytest? Use the standard library — same tests, plainer output, and it must be run **from the
+repository folder**:
+
+```powershell
+cd "$R"
+python -m unittest tests.test_docs tests.test_firmware tests.test_foundations tests.test_phase3_tools tests.test_phase5_phase6 tests.test_phase7_phase8 -v
+```
 
 The suites map to phases:
 
@@ -467,6 +485,7 @@ atoms.
 |---|---|---|
 | `python: command not found` | Python not on PATH | Reinstall from python.org, tick "Add to PATH"; or use `py` instead of `python` |
 | `No module named pytest` | pytest not installed | `python -m pip install pytest`, or use the unittest line in Step 4 |
+| `ModuleNotFoundError: No module named 'src'` | pytest could not find the repo root (`rootdir` in the header shows your home folder) | `cd` to the repo first, or run `python -m pytest "$R\tests" -v` — `conftest.py` + `pytest.ini` in the repo root make the absolute-path form work |
 | `g++: command not found` | no C++ compiler | Step 2; the firmware tests skip without one |
 | `can't open file '...\src\...'` | the relative path resolved against a folder you are not in | `python check_setup.py`, or run it by absolute path: `python "C:\full\path\to\src\phase8_safety_testing\run_phase_walkthrough.py"` |
 | `fatal: not a git repository` | the folder is a ZIP download, not a clone | expected — Step 1 shows how to clone or re-download |

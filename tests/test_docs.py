@@ -164,6 +164,37 @@ class BranchMarkers(unittest.TestCase):
         self.assertIn("git clone -b", text)
 
 
+class PytestRunsFromAnyFolder(unittest.TestCase):
+    """The tests import `src...`, which needs the REPO ROOT on sys.path.
+
+    `python -m pytest` only adds the *current working directory*, so the documented command
+    failed with `ModuleNotFoundError: No module named 'src'` for anyone who ran it from another
+    folder - the very thing the guide tells you to do when your shell is somewhere else. The root
+    `conftest.py` and `pytest.ini` fix it; this test is the reason they cannot be deleted.
+    """
+
+    def test_pytest_works_when_launched_from_outside_the_repository(self):
+        import subprocess
+        import sys
+        target = ROOT / "tests" / "test_foundations.py"
+        done = subprocess.run([sys.executable, "-m", "pytest", str(target), "-q"],
+                              cwd=str(ROOT.parent), capture_output=True, text=True, timeout=600)
+        combined = done.stdout + done.stderr
+        self.assertNotIn("No module named 'src'", combined,
+                         "the repo root is not on sys.path: conftest.py / pytest.ini were "
+                         "removed or stopped working")
+        self.assertEqual(done.returncode, 0, combined[-1500:])
+
+    def test_the_bootstrap_files_exist(self):
+        self.assertTrue((ROOT / "conftest.py").exists(),
+                        "conftest.py puts the repo root on sys.path for every pytest run")
+        self.assertTrue((ROOT / "pytest.ini").exists(),
+                        "pytest.ini pins rootdir and testpaths")
+        text = (ROOT / "pytest.ini").read_text(encoding="utf-8")
+        self.assertIn("testpaths", text)
+        self.assertIn("pythonpath", text)
+
+
 class FirmwarePolarityDocs(unittest.TestCase):
     """The one-line polarity fix must be documented where someone will find it."""
 
