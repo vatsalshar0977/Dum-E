@@ -105,6 +105,34 @@ class GuideHonesty(unittest.TestCase):
         self.assertIn("will not re-enable itself", self.text.lower())
 
 
+class SetupCheck(unittest.TestCase):
+    """`check_setup.py` is the first thing a new user runs, so it has to work from anywhere.
+
+    A reader whose shell is in the wrong folder sees `can't open file '...src...': No such file
+    or directory`; this script is the answer to that, which means it must not itself depend on
+    the working directory.
+    """
+
+    def test_it_runs_from_another_folder_and_names_every_test_module(self):
+        import subprocess
+        import sys
+        script = ROOT / "check_setup.py"
+        self.assertTrue(script.exists(), "check_setup.py is missing from the repo root")
+        # cwd is deliberately OUTSIDE the repository: that is the case that breaks people.
+        done = subprocess.run([sys.executable, str(script)], cwd=str(ROOT.parent),
+                              capture_output=True, text=True, timeout=180)
+        self.assertEqual(done.returncode, 0, done.stdout[-2000:] + done.stderr[-800:])
+        output = done.stdout
+        self.assertIn("B.U.D.-E SETUP CHECK", output)
+        self.assertIn(str(ROOT), output, "the check must print the repository root")
+        self.assertIn("run_phase_walkthrough.py", output)
+        modules = sorted(path.stem for path in (ROOT / "tests").glob("test_*.py"))
+        self.assertGreaterEqual(len(modules), 6)
+        for module in modules:
+            self.assertIn(f"tests.{module}", output,
+                          f"the setup check does not offer to run {module}")
+
+
 class FirmwarePolarityDocs(unittest.TestCase):
     """The one-line polarity fix must be documented where someone will find it."""
 

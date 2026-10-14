@@ -11,13 +11,14 @@ this robot · never leave a stalled servo powered · one change at a time.
 
 ## Part 1 — laptop only (~30 min, no hardware)
 
-- [ ] **1. Python present** — `python --version` → 3.10 or newer
+- [ ] **1. Setup check** — `python check_setup.py` → every line `OK` (it also tells you where the
+      repo is and what to type next; the OPTIONAL flags are genuinely optional) · `python --version` → 3.10+
 - [ ] **2. Tools** — `python -m pip install pytest pyserial` · `g++ --version` (optional; without
       it the two firmware tests skip instead of failing)
 - [ ] **3. Whole project, one command** — `python src\phase8_safety_testing\run_phase_walkthrough.py`
       → last line **`18 of 18 commands exited 0`**
-- [ ] **4. Unit tests** — `python -m pytest -v` → **`127 passed`**, 0 failed (the count grows as
-      tests are added; what matters is no `failed` and no `error`)
+- [ ] **4. Unit tests** — `python -m pytest -v` → **`128 passed`**, 0 failed (the count grows as
+      tests are added; what matters is no `failed`, no `error`, and skips only where a tool is absent)
 - [ ] **5. Acceptance suite** — `python src\phase8_safety_testing\run_full_acceptance_suite.py`
       → **`50 / 50 checks passed`**, **`VERDICT: PASS`**
 - [ ] **6. Rebuild + re-audit the parts** —

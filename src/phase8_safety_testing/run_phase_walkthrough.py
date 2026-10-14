@@ -225,8 +225,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"\n  transcript written to {args.out.relative_to(ROOT)} "
-          f"({args.out.stat().st_size / 1024:.0f} KB)")
+    # `--out` is allowed to be anywhere (people run this from outside the repo and write to
+    # /tmp or Desktop), so never assume it is inside ROOT - `relative_to` raises otherwise, and
+    # an exception here would turn a fully successful walkthrough into a non-zero exit code.
+    try:
+        shown = args.out.relative_to(ROOT)
+    except ValueError:
+        shown = args.out
+    print(f"\n  transcript written to {shown} ({args.out.stat().st_size / 1024:.0f} KB)")
     return 0 if failures == 0 else 1
 
 

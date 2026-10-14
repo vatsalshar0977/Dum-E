@@ -30,55 +30,89 @@ guide says PASS, it means "the arithmetic and the code agree", not "it works".
 
 # PART 1 — On your laptop (about 30 minutes, no hardware)
 
-## Step 1 — Check what you already have
+## Step 1 — Run the setup check (do this first)
 
 ```powershell
-python --version
+python check_setup.py
 ```
 
-Expected: `Python 3.10` or newer. If Windows opens the Microsoft Store instead, install Python
-from python.org and tick **Add python.exe to PATH**.
+It answers, in one shot, the five things that actually bite on a fresh machine: where is the
+repo, is my Python new enough, do I have the optional tools, is this a git clone or a ZIP, and
+what exactly do I type next.
+
+Expected — everything that matters says `OK`:
+
+```
+  repo root       : C:\Users\you\Documents\Dum-E-arena-dc4957e8-dum-e
+  you are in      : C:\WINDOWS\system32
+  python          : 3.13.7  OK
+  key files       : 12/12 present  OK
+  pytest          : 9.1.1  OK
+  C++ compiler    : NOT FOUND (OPTIONAL)
+  source          : ZIP copy (no .git)
+```
+
+**You do not have to `cd` anywhere.** Every script in this repository works out its own location
+from its own file path, so both of these work no matter where you are:
 
 ```powershell
-python -m pip --version
+python "C:\full\path\to\check_setup.py"
+python "C:\full\path\to\src\phase8_safety_testing\run_phase_walkthrough.py"
 ```
 
-Then, from the repository folder:
+That is the answer to `can't open file '...\src\...': No such file or directory` — the relative
+path was resolved against whatever folder the shell was really in, which is not always the folder
+its prompt claims. If you would rather `cd` first, copy the `cd "..."` line the check prints, and
+then confirm with `dir` that you can see `README.md`, `src`, `docs`, `firmware`, `tests`.
 
-```powershell
-cd C:\path\to\Dum-E
-python -c "import sys; print(sys.version); print('ok')"
-```
+**Two things it reports that are not faults:**
 
-**If this fails:** nothing else will work. Fix Python first.
+* **`source : ZIP copy (no .git)`** — a ZIP download has no `.git` directory, so `git fetch`,
+  `git checkout` and `git pull` all fail with `fatal: not a git repository`. That is expected, not
+  damage. Either re-download the branch ZIP when you want an update, or make a real clone once:
+
+  ```powershell
+  git clone -b arena/dc4957e8-dum-e https://github.com/vatsalshar0977/Dum-E.git bude
+  ```
+
+* **`C++ compiler : NOT FOUND (OPTIONAL)`** — six unit tests skip and two acceptance checks report
+  `skipped: no C++ compiler`. Everything else runs. Step 2 has the install options.
+
+**If it reports `key files: N/12` with names listed:** the download or the extraction was
+incomplete. Delete the folder and extract the ZIP again from scratch rather than patching it up.
+
+**If a file you can see in Explorer is reported as missing:** the folder is inside OneDrive and
+the file is a cloud-only placeholder. Right-click the folder → **Always keep on this device**.
 
 ---
 
-## Step 2 — Install the two optional tools
+## Step 2 — Install anything the check flagged
 
-Neither is required to run the code, but both make the guide shorter.
+All three are optional; install what you want.
 
 ```powershell
-python -m pip install pytest
-python -m pip install pyserial
+python -m pip install pytest pyserial
 ```
 
-* **pytest** — runs the test suite with nicer output (the tests also run under the standard
-  library, see Step 4).
-* **pyserial** — only needed later, to talk to the real ESP32 over USB.
+* **pytest** — nicer output (`python -m pytest -v`). Without it, use the stdlib command the setup
+  check prints for you; it is the same tests.
+* **pyserial** — needed only in Part 2, to talk to the real ESP32 over USB.
 
-For the **firmware** tests you also need a C++ compiler, because the firmware is compiled and
-executed rather than merely inspected:
+For the **firmware** tests you need a C++ compiler, because the firmware is *compiled and
+executed*, not merely inspected:
 
 ```powershell
 g++ --version
 ```
 
-* If that prints a version, you are done.
-* If not, install **MSYS2** from msys2.org, then run `pacman -S mingw-w64-ucrt-x86_64-gcc`.
-* On macOS: `xcode-select --install`. On Linux: `sudo apt install g++`.
-* No compiler? Everything still passes — the two firmware tests **skip** rather than fail. You
-  just lose the evidence that the sketch's safety logic actually executes.
+* Prints a version? Done.
+* **Windows:** `winget install -e --id MSYS2.MSYS2`, then inside MSYS2 run
+  `pacman -S mingw-w64-ucrt-x86_64-gcc`. Or `winget install -e --id BrechtSanders.WinLibs.POSIX.UCRT`.
+  If winget says the id is unknown, run `winget search gcc`. **Open a new terminal afterwards** —
+  an existing one will not see the new PATH.
+* **macOS:** `xcode-select --install`. **Linux:** `sudo apt install g++`.
+* No compiler? Everything still runs. You just lose the evidence that the sketch's safety logic
+  actually executes, and the six firmware tests report as skipped rather than passed.
 
 ---
 
@@ -100,7 +134,7 @@ Expected, at the end:
   2      0      206 / 206
   3      0      VERDICT: PASS
   ...
-  8      0      127 passed
+  8      0      128 passed
   18 of 18 commands exited 0.
 
   transcript written to docs/phase_walkthrough_transcript.txt (81 KB)
@@ -123,7 +157,7 @@ are looking at.
 python -m pytest -v
 ```
 
-Expected: **`127 passed`** in a few seconds. (The exact count grows as tests are added — the
+Expected: **`128 passed`** in a few seconds. (The exact count grows as tests are added — the
 word to look for is `passed`, and for the absence of `failed` or `error`.)
 
 No pytest? Use the standard library — same tests, plainer output:
@@ -132,7 +166,7 @@ No pytest? Use the standard library — same tests, plainer output:
 python -m unittest tests.test_foundations tests.test_phase5_phase6 tests.test_phase7_phase8 tests.test_firmware tests.test_phase3_tools -v
 ```
 
-Expected: `Ran 127 tests ... OK`.
+Expected: `Ran 128 tests ... OK`.
 
 The suites map to phases:
 
@@ -372,6 +406,10 @@ atoms.
 | `python: command not found` | Python not on PATH | Reinstall from python.org, tick "Add to PATH"; or use `py` instead of `python` |
 | `No module named pytest` | pytest not installed | `python -m pip install pytest`, or use the unittest line in Step 4 |
 | `g++: command not found` | no C++ compiler | Step 2; the firmware tests skip without one |
+| `can't open file '...\src\...'` | the relative path resolved against a folder you are not in | `python check_setup.py`, or run it by absolute path: `python "C:\full\path\to\src\phase8_safety_testing\run_phase_walkthrough.py"` |
+| `fatal: not a git repository` | the folder is a ZIP download, not a clone | expected — Step 1 shows how to clone or re-download |
+| `g++ is not recognized` | no C++ compiler | optional — Step 2. Without it 6 tests skip; everything else runs |
+| a file visible in Explorer is "missing" | OneDrive cloud-only placeholder | right-click the folder → "Always keep on this device" |
 | `ModuleNotFoundError: src` | run from the wrong folder | `cd` to the repository root (the folder containing `README.md`) |
 | A test asserts and fails | a real mismatch | Read the assertion text; do not edit the test |
 | The viewer shows nothing | port in use | `python src\phase4_simulation\web_sim_server.py` prints which port it took; try `--port 8081` |
@@ -791,6 +829,7 @@ python src\phase7_voice_personality\voice_assistant.py --command "get me the scr
 
 ```powershell
 # ---- Part 1, on the laptop -------------------------------------------------
+python check_setup.py                                                # first: is my setup right?
 python src\phase8_safety_testing\run_phase_walkthrough.py            # all 18 phase commands
 python -m pytest -v                                                  # the whole suite
 python src\phase8_safety_testing\run_full_acceptance_suite.py        # 50 checks, the scorecard
