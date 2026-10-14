@@ -30,10 +30,54 @@ guide says PASS, it means "the arithmetic and the code agree", not "it works".
 
 # PART 1 — On your laptop (about 30 minutes, no hardware)
 
-## Step 1 — Run the setup check (do this first)
+## Step 0 — Find your folder (30 seconds, and it prevents most of the confusion)
+
+Windows PowerShell starts in `C:\WINDOWS\system32`, not in your download folder. A relative path
+like `python src\phase8_safety_testing\...` is resolved against **where the shell really is**, so
+you get:
+
+```
+python: can't open file 'C:\WINDOWS\system32\src\phase8_safety_testing\run_phase_walkthrough.py'
+```
+
+That message means *the folder*, not the file, and not your download. You have two ways out, and
+either is fine:
+
+**Option A — do not `cd` at all.** Every script in this repository finds its own location from its
+own file path, so an absolute path works from anywhere:
+
+```powershell
+python "C:\full\path\to\check_setup.py"
+```
+
+**Option B — `cd` to the folder first.** Open File Explorer, find the folder that directly contains
+`README.md`, `src`, `docs`, `firmware` and `tests`, then copy its address bar:
+
+```powershell
+cd "C:\Users\you\Documents\Dum-E-arena-dc4957e8-dum-e"
+python check_setup.py
+```
+
+> **About the folder name:** a ZIP of this branch extracts to `Dum-E-arena-dc4957e8-dum-e` (a
+> ZIP of the other branch extracts to `Dum-E-main`). If you extracted twice you may have
+> `...\Dum-E-arena-dc4957e8-dum-e\Dum-E-arena-dc4957e8-dum-e` — that is harmless as long as the
+> **innermost** folder is the one with `README.md` in it. `check_setup.py` prints `repo root`,
+> which is the definitive answer.
+
+---
+
+## Step 1 — Run the setup check
 
 ```powershell
 python check_setup.py
+```
+
+If it is not there, your download predates it — re-download this branch's ZIP, or clone (Step 0b
+below). Downloading `main` instead of this branch is a common mistake and gives the *same* error
+message as being in the wrong folder, because `main` does not contain the Phase 5–8 work:
+
+```powershell
+git clone -b arena/dc4957e8-dum-e https://github.com/vatsalshar0977/Dum-E.git bude
 ```
 
 It answers, in one shot, the five things that actually bite on a fresh machine: where is the

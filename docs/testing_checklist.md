@@ -11,6 +11,9 @@ this robot · never leave a stalled servo powered · one change at a time.
 
 ## Part 1 — laptop only (~30 min, no hardware)
 
+- [ ] **0. Find the folder** — either `cd` to the folder containing `README.md`, or use absolute
+      paths (every script locates itself). Relative paths resolve against PowerShell's real
+      working directory, which is why `can't open file 'C:\WINDOWS\system32\src\...'` happens
 - [ ] **1. Setup check** — `python check_setup.py` → every line `OK` (it also tells you where the
       repo is and what to type next; the OPTIONAL flags are genuinely optional) · `python --version` → 3.10+
 - [ ] **1b. Right branch?** — the `content` line must read
