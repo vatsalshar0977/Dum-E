@@ -137,7 +137,13 @@ BASE_PLATE_MM = 92.0                 # a SQUARE plate; see the note in build_03
 ROVER_BOLT_CIRCLE_R_MM = 36.0
 ROVER_BOLT_ANGLES_DEG = (45.0, 135.0, 225.0, 315.0)
 M3_CLEARANCE_HOLE_D_MM = 3.4
-M3_NUT_ACROSS_FLATS_MM = 5.5
+# DIN 934 says 5.5 mm across flats, but the BOM deliberately warns that cheap assortments
+# run 5.4-5.8 mm. A trap drawn at the nominal 5.5 measures 5.35 on a printer that runs 0.15 mm
+# under, and a 5.8 mm nut then has to be hammered in - which is how a nylon-adjacent printed
+# wall cracks. The trap is therefore drawn at 5.9 A/F: 5.75 worst case (accepts a 5.8 nut with
+# a file stroke), 6.05 on a fat printer (the nut is loose but cannot fall through a 2.6 mm
+# deep well). That is a deliberate 0.4 mm of slop over DIN in exchange for not cracking parts.
+M3_NUT_ACROSS_FLATS_MM = 5.9
 M3_NUT_TRAP_DEPTH_MM = 2.6
 WHEEL_DIAMETER_MM = 48.0
 WHEEL_THICKNESS_MM = 5.0
@@ -1361,17 +1367,46 @@ def build_09() -> Tuple[PartSpec, MeshBuilder]:
 
 
 def build_10() -> Tuple[PartSpec, MeshBuilder]:
+    """Electronics tray + cable loom guides.
+
+    Revised after the deep CAD audit: the previous version was a bare plate with four stand
+    pillars and SIX loose rings floating 10 mm off its edge. Two real defects came out of
+    measuring it:
+
+      * the rings were not attached to anything (6 disjoint bodies you would have to glue),
+        and their bores sat at z = 0..6, i.e. half-buried in whatever surface they rested on;
+      * nothing on the plate retained a board. "ESP32 + PCA9685 + INA219 tray" was a promise
+        the geometry did not keep.
+
+    Now: a 4 mm rim on three sides holds the boards, the fourth side is open for the loom, and
+    each clip is joined to the plate by its own bridge so the whole part prints as ONE body.
+    """
     m = MeshBuilder("10_cable_clips_and_electronics_tray")
     m.add_box(0.0, 0.0, 1.5, 68.0, 52.0, 3.0)
+    # Board retention rim: 2.5 mm thick, standing 4 mm proud of the plate, open at +Y where
+    # the loom leaves. Usable platform inside it: 63.0 x 49.5 mm.
+    m.add_box_span(-34.0, 34.0, -26.0, -23.5, 0.0, 7.0)          # -Y wall
+    m.add_box_span(-34.0, -31.5, -26.0, 26.0, 0.0, 7.0)          # -X wall
+    m.add_box_span(31.5, 34.0, -26.0, 26.0, 0.0, 7.0)            # +X wall
+    # Four standoffs: M3 clearance through-holes for fixing the tray down.
     for sx, sy in ((-30.0, -22.0), (30.0, -22.0), (-30.0, 22.0), (30.0, 22.0)):
         m.add_tube_z(sx, sy, 3.0, 5.0, 1.4, 3.2, 16)
-    for i in range(6):
-        m.add_tube_z(-30.0 + i * 12.0, 36.0, 0.0, 6.0, 4.0, 6.0, 20)
+    # Five loom guides, each bridged into the plate edge so the file is a single body.
+    for i in range(5):
+        cx = -24.8 + i * 12.4
+        m.add_tube_z(cx, 33.0, 0.0, 6.0, 4.0, 6.0, 20)            # the guide itself
+        m.add_box_span(cx - 1.5, cx + 1.5, 24.0, 28.5, 0.0, 3.0)  # bridge to the plate
     spec = PartSpec(
         "10_cable_clips_and_electronics_tray.stl",
-        "ESP32 + PCA9685 + INA219 tray and cable clips", 12.0,
-        "Flat on the bed", 0.20, 3, 20, "None",
-        "Keeps the electronics beside the base and the servo loom clipped down.")
+        "ESP32 + PCA9685 + INA219 tray and cable clips", 17.0,
+        "Flat on the bed", 0.20, 3, 25, "None",
+        "Keeps the electronics beside the base and the servo loom clipped down.",
+        ["63.0 x 49.5 mm of usable platform inside the 2.5 mm rim, open at +Y for the loom.",
+         "PCA9685 62.5 x 25.4 mm fits alone; ESP32 54.5 x 28.0 mm and INA219 25.5 x 27.9 mm "
+         "must be stacked or laid side by side - the platform is 49.5 mm deep, so planar "
+         "boards wider than that pair must overlap.",
+         "The rim retains the stack; add a 2 mm foam pad or M2 self-tapper if you carry the "
+         "rover by its arm."])
     return spec, m
 
 
