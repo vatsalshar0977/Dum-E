@@ -119,6 +119,43 @@ static const int PIN_PCA9685_OE = 4;      // HIGH = outputs disabled (tri-stated
 // reads, the input gate and the interrupt edge all follow it.
 static const bool CLIFF_TRIPPED_IS_HIGH = true;
 
+// -----------------------------------------------------------------------------------------
+// BUILD OPTIONS - the three decisions that depend on YOUR build, all in one place.
+// -----------------------------------------------------------------------------------------
+
+/**
+ * Does the rover carry the HC-SR04? If `true`, the firmware refuses to drive FORWARD until it
+ * has a fresh distance reading, so a dead, unplugged or unshifted ECHO pin stops the rover
+ * instead of letting it drive blind into the thing it was supposed to see.
+ *
+ * The previous default was the opposite (drive whether or not the sensor ever answered), which
+ * meant a sensor that failed at power-on silently removed the obstacle stop. Set this to `false`
+ * ONLY for a bench build with no sonar fitted at all - a stationary arm, or Gate C/D testing.
+ * The boot log always reports the choice as "sonar_required_for_forward".
+ */
+static const bool SONAR_REQUIRED_FOR_FORWARD = true;
+
+/**
+ * Refuse to enable the servo outputs when the INA219 never answered at boot.
+ *
+ * The current sensor is not a luxury on this robot: the brownout cut and the e-stop-open latch
+ * both read through it. Without it, a discharged pack or an opened e-stop is invisible to the
+ * firmware, and the arm keeps holding torque on a rail that is sagging. Set this to `true` only
+ * if you have deliberately built without current sensing, and accept that both of those
+ * protections are then absent.
+ */
+static const bool REQUIRE_INA219_TO_ENABLE = true;
+
+// -----------------------------------------------------------------------------------------
+// CALIBRATION - measured, not derived. Replace these with YOUR numbers after the bench tests
+// in docs/testing_guide.md (Gates C, D, F). They are correct for a typical servo and are what
+// the host tests exercise, but no datasheet survives contact with a cheap servo.
+// -----------------------------------------------------------------------------------------
+static const uint16_t SERVO_NEUTRAL_US = 1500;   // Gate C: the pulse where a joint sits still
+static const uint16_t WHEEL_STOP_US = 1500;      // Gate F: the pulse where a wheel truly stops
+static const uint16_t WHEEL_CREEP_US = 15;       // Gate F: how far off WHEEL_STOP_US the wheel
+                                                 //   starts to turn. Below this it buzzes.
+
 /** Is the floor missing under this sensor? One definition, used by every reader. */
 static bool cliffTripped(int pin) {
   return CLIFF_TRIPPED_IS_HIGH ? (digitalRead(pin) == HIGH) : (digitalRead(pin) == LOW);
@@ -142,6 +179,36 @@ static const uint8_t INA219_REG_CONFIG = 0x00;
 static const uint8_t INA219_REG_BUS_VOLTAGE = 0x02;
 static const uint8_t INA219_REG_CURRENT = 0x04;
 static const uint8_t INA219_REG_CALIBRATION = 0x05;
+
+/**
+ * INA219 SHUNT CALIBRATION - change BOTH lines together, or every current reading is wrong.
+ *
+ *   Your module          INA219_SHUNT_OHMS   INA219_CURRENT_LSB_MA
+ *   0.1 ohm (stock)          0.1f                0.1f     <- default, 3.2 A full scale
+ *   0.01 ohm (5 A class)     0.01f                1.0f    <- 32 A full scale
+ *
+ * The stock 0.1 ohm breakout is NOT a 5 A part: at 5 A it drops 0.5 V and burns 2.5 W, and at
+ * the 10.5 A the arm draws when all three MG996Rs stall it drops over a volt and burns about
+ * 11 W. docs/phase3_electronics_and_wiring.md says the same, and
+ * src/phase3_electronics/power_and_wiring_verifier.py checks that it does. Fit the 0.01 ohm
+ * board before you trust a stall test.
+ *
+ * cal = 0.04096 / (lsb_A * R), 15 bits: 4096 for the stock pair.
+ */
+static const float INA219_SHUNT_OHMS = 0.1f;
+static const float INA219_CURRENT_LSB_MA = 0.1f;
+
+static uint16_t inaCalibration() {
+  const float lsb_a = INA219_CURRENT_LSB_MA / 1000.0f;
+  const long cal = static_cast<long>(0.04096f / (lsb_a * INA219_SHUNT_OHMS));
+  if (cal < 1) {
+    return 1;
+  }
+  if (cal > 32767) {
+    return 32767;   // the register is 15 bits: a larger value silently truncates
+  }
+  return static_cast<uint16_t>(cal);
+}
 
 /** The brief fixes the wheels at channels 6 and 7. */
 static const uint8_t WHEEL_LEFT_CH = 6;
@@ -251,7 +318,11 @@ static void i2c_bus_recovery() {
 static void i2cBegin() {
   Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
   Wire.setClock(400000);
-  Wire.setTimeOut(20);   // ms. A wedged bus must not stall the loop: the budget is 5 ms.
+  // 4 ms, NOT 20 ms. A wedged bus must not be able to stall the loop for longer than the
+  // reflex deadline: the previous value of 20 ms let one bad transaction blow a 5 ms budget
+  // four times over, which is a self-contradiction in a file whose whole point is that number.
+  // A legitimate two-channel write is ~200 us at 400 kHz, so 4 ms is still 20x margin.
+  Wire.setTimeOut(4);
 }
 
 static bool pcaWriteBytes(uint8_t reg, const uint8_t* data, uint8_t len) {
@@ -526,9 +597,9 @@ static bool inaBegin() {
   if (!inaWriteRegister(INA219_REG_CONFIG, 0x399F)) {
     return false;
   }
-  // cal = 0.04096 / (current_lsb * r_shunt): 0.1 ohm shunt, 100 uA per bit -> 4096.
-  // That gives current_ma = raw * 0.1 and 4 mV per bus-voltage bit.
-  return inaWriteRegister(INA219_REG_CALIBRATION, 4096);
+  // cal = 0.04096 / (current_lsb * r_shunt): the stock 0.1 ohm shunt with 100 uA per bit gives
+  // 4096, which is what the host tests decode. 4 mV per bus-voltage bit either way.
+  return inaWriteRegister(INA219_REG_CALIBRATION, inaCalibration());
 }
 
 static void serviceIna219() {
@@ -550,7 +621,8 @@ static void serviceIna219() {
   g_bus_v = static_cast<float>(raw >> 3) * 0.004f;
 
   if (inaReadRegister(INA219_REG_CURRENT, &raw)) {
-    g_current_ma = static_cast<float>(static_cast<int16_t>(raw)) * 0.1f;
+    // scaled by the LSB actually configured above, not a hard-coded 0.1
+    g_current_ma = static_cast<float>(static_cast<int16_t>(raw)) * INA219_CURRENT_LSB_MA;
   }
 
   // The physical e-stop removes servo power, so the INA219 sees about 0 V. Latch it.
@@ -872,6 +944,14 @@ static void dispatchLine(const char* line) {
         printEvent("ESTOP_LATCHED", "release the physical e-stop before enabling outputs");
         return;
       }
+      if (REQUIRE_INA219_TO_ENABLE && !g_ina_present) {
+        // No current sensor means no brownout cut and no e-stop-open latch. Enabling the
+        // outputs would look like success while quietly disabling both. Refuse, and say why.
+        printEvent("INA219_REQUIRED",
+                   "no INA219: brownout and e-stop-open detection would be dead. Fix the "
+                   "address/wiring, or set REQUIRE_INA219_TO_ENABLE=false deliberately");
+        return;
+      }
       setServoEnable(true);
       Serial.println("{\"ok\":true,\"outputs\":\"on\"}");
     } else {
@@ -976,21 +1056,30 @@ void setup() {
   // 5. Rover builds that always carry the HC-SR04 should require it: set true so a dead
   //    sensor fails closed instead of driving blind. Left false here so the stationary arm
   //    can be bench-tested with no sonar fitted at all.
-  g_front.requireSensor(false);
+  g_front.requireSensor(SONAR_REQUIRED_FOR_FORWARD);
 
   Serial.printf("{\"ok\":true,\"event\":\"BOOT\",\"fw\":\"BUDE-ESP32-full-1.0\","
                 "\"pca9685\":%s,\"ina219\":%s,\"outputs\":\"off\","
                 "\"cliff_pins\":[%d,%d],\"cliff_tripped_is_high\":%s,"
+                "\"sonar_required_for_forward\":%s,\"require_ina219\":%s,"
                 "\"wheel_channels\":[%u,%u],\"recoil_ms\":%lu,"
                 "\"host_timeout_ms\":%lu,\"wdt_ms\":%lu}\n",
                 pca_ok ? "true" : "false", g_ina_present ? "true" : "false",
                 PIN_CLIFF_LEFT, PIN_CLIFF_RIGHT,
                 CLIFF_TRIPPED_IS_HIGH ? "true" : "false",
+                SONAR_REQUIRED_FOR_FORWARD ? "true" : "false",
+                REQUIRE_INA219_TO_ENABLE ? "true" : "false",
                 static_cast<unsigned>(WHEEL_LEFT_CH),
                 static_cast<unsigned>(WHEEL_RIGHT_CH),
                 static_cast<unsigned long>(g_wheels.config().recoil_ms),
                 static_cast<unsigned long>(g_wheels.config().command_timeout_ms),
                 static_cast<unsigned long>(WATCHDOG_TIMEOUT_MS));
+  // State the current-sensing calibration: a swapped shunt is otherwise invisible in the log.
+  Serial.printf("{\"ok\":true,\"event\":\"INA219_CAL\",\"shunt_ohms\":%.3f,\"current_lsb_ma\":%.3f,"
+                "\"calibration\":%u}\n",
+                static_cast<double>(INA219_SHUNT_OHMS),
+                static_cast<double>(INA219_CURRENT_LSB_MA),
+                static_cast<unsigned>(inaCalibration()));
   printHelp();
 }
 

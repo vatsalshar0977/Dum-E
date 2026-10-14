@@ -12,6 +12,7 @@ Use a laptop + ESP32-WROOM-32 + PCA9685 (50 Hz); this avoids buying an SBC. A no
 | --- | --- | --- |
 | DC brick +6 V | DC-rated fuse, then latching **NC** mushroom E-stop, then INA219 VIN+ | Fuse at supply output, sized **no greater than the smallest wire/switch/board continuous rating**, according to measured load. Do **not** assume a 7.5 A fuse protects a 5 A supply or a small INA219 board. |
 | INA219 VIN− | PCA9685 servo V+ | INA219 0.1 Ω shunt is usually unsuitable for all six stalled servos; never assume 5 A through a default breakout is safe. |
+| INA219 shunt | **0.01 Ω, 5 A class** recommended | The sketch defaults to `INA219_SHUNT_OHMS = 0.1f` / `INA219_CURRENT_LSB_MA = 0.1f`, matching the stock board. A 0.01 Ω board needs **both** lines changed to `0.01f` / `1.0f`; the boot log prints `INA219_CAL` with the pair it assumed, so a mismatch is visible instead of silent. |
 | DC brick − | PCA9685 servo GND, INA219 GND, ESP32 GND | Common reference. Keep motor return separate from thin signal wires until ground junction. |
 | USB laptop | ESP32 USB | USB powers *logic only*. No servo power from USB. |
 | ESP32 3V3 / GND | PCA9685 VCC / GND, INA219 VCC / GND | Never connect 6 V to PCA9685 VCC or ESP32 3V3. Check I²C pull-ups are to 3.3 V. |
@@ -94,6 +95,20 @@ Note that the pins are `INPUT_PULLUP`, so an **unplugged** sensor reads as a cli
 refuse to drive forward rather than drive blind. That is the safe direction, and it is also the
 thing that will confuse you on the bench — see `docs/testing_guide.md`, Gate D.
 
+### ⚠ Three build options, all of which fail closed
+
+These live at the top of `phase3_full_6dof_esp32.ino`, and the boot JSON reports every one of
+them, so the serial log always states what the firmware assumed:
+
+| Constant | Ships as | What it protects | The only reason to change it |
+| --- | --- | --- | --- |
+| `CLIFF_TRIPPED_IS_HIGH` | `true` | A broken sensor wire reads HIGH (INPUT_PULLUP) = "cliff", so it cannot drive forward. | Your TCRT5000 modules invert the output - Gate D tells you which way round yours are. |
+| `SONAR_REQUIRED_FOR_FORWARD` | `true` | No **fresh** distance reading means no forward motion, so a dead or unplugged HC-SR04 stops the rover rather than letting it drive blind into what it was meant to see. | A bench build with no sonar fitted at all (stationary arm, Gates C/D). |
+| `REQUIRE_INA219_TO_ENABLE` | `true` | Refuses `OE 0` when the INA219 never answered, because the brownout cut and the e-stop-open latch both read through it - without it, a sagging rail is invisible. | You deliberately built with no current sensing; you then lose both protections. |
+
+The first two are exercised by `tests/firmware_host/main.cpp` at runtime (sections 13-14 prove the
+sonar one by starving the sensor and checking that forward is refused).
+
 ### ⚠ Calibrate the wheel directions before any cliff test
 
 The brief's recoil pair is `1680 / 1320`, which only moves the rover *backward* if the two drive
@@ -125,9 +140,10 @@ g++ -std=c++11 -Wall -Wextra -I tests/firmware_host -o /tmp/fw tests/firmware_ho
   distance guard, with **no** Arduino dependency. 73 checks, all passing.
 * `tests/firmware_host/main.cpp` — the **real `.ino`**, compiled against stub Arduino / ESP32 /
   Wire APIs and driven with a simulated clock, simulated GPIO and a PCA9685 whose register
-  writes are decoded back into pulse widths. 68 checks, all passing: the boot order, a GPIO 25
+  writes are decoded back into pulse widths. 73 checks, all passing: the boot order, a GPIO 25
   edge → both channels reversed inside one loop iteration, the 350 ms recoil, the forward
-  refusal, the 500 ms timeout, NACK → recovery → OE cut, and a 400-character serial flood.
+  refusal, the 500 ms timeout, NACK → recovery → OE cut, a 400-character serial flood, and
+  the two fail-closed paths: a wall inside the stop distance, and a sonar that stops answering.
 
 That is a real compiler and a real execution of the firmware's logic — and it is still **not an
 ESP32**. The I2C peripheral, the interrupts, the watchdog and the servos are models. This

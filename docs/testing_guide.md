@@ -222,7 +222,7 @@ cd "$R"
 python -m pytest -v
 ```
 
-Expected: **`133 passed`** in a few seconds. (The count grows as tests are added — what matters is
+Expected: **`139 passed`** in a few seconds. (The count grows as tests are added — what matters is
 `passed`, and the absence of `failed` or `error`.)
 
 **From anywhere else**, either form works, because `conftest.py` and `pytest.ini` in the repo root
@@ -344,7 +344,7 @@ g++ -std=c++11 -Wall -Wextra -I tests\firmware_host -o fw.exe tests\firmware_hos
 .\fw.exe
 ```
 
-Expected: `PASS: 68 / 68 checks`, including this line:
+Expected: `PASS: 73 / 73 checks`, including this line:
 
 ```
    measured edge -> both channels written: 237 us (budget 5000 us)

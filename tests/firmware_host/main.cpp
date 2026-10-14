@@ -123,6 +123,34 @@ static void runLoops(int n, uint32_t us_per_loop = 60) {
 }
 
 /**
+ * Answer the HC-SR04 the way a real one would: wait for the sketch to pulse TRIG, then fire the
+ * echo interrupt pair with a width corresponding to `mm`.
+ *
+ * The shipped firmware requires a FRESH distance reading before it will drive forward, so any
+ * test that drives forward must make the sensor answer - otherwise the test quietly measures the
+ * fail-closed path instead of the thing it claims to measure. The first run after adding that
+ * requirement failed 12 checks for exactly this reason.
+ */
+static void setFrontDistance(uint32_t mm) {
+  const uint32_t width_us = mm * 6u;          // the sketch divides by 6
+  for (int i = 0; i < 500 && !g_sonar_waiting; ++i) {
+    loop();
+    stepUs(1000);
+  }
+  stepUs(500);
+  // The ISR reads the PIN LEVEL to tell a rising edge from a falling one, so the harness has to
+  // move the pin as well as raise the interrupt - exactly as a real HC-SR04 does.
+  digitalWrite(19, HIGH);
+  budeFireInterrupt(19);                      // rising edge
+  stepUs(width_us);
+  digitalWrite(19, LOW);
+  budeFireInterrupt(19);                      // falling edge: the sketch now has a reading
+  loop();
+  stepUs(60);
+}
+
+
+/**
  * Drive a cliff pin the way a TCRT5000 output would.
  *
  * The level that means "tripped" is the sketch's own `CLIFF_TRIPPED_IS_HIGH`, so this harness
@@ -182,6 +210,7 @@ int main() {
 
   // -------------------------------------------------------------------------
   std::printf("\n3. THE HEADLINE: a GPIO 25 edge while driving forward\n");
+  setFrontDistance(300);            // sky clear 30 cm ahead: forward is allowed
   Serial.feed("W 1320 1680\n");             // forward, mirrored pair
   runLoops(3);
   checkInt(static_cast<long>(g_pca_channels[6]), 1320, "driving forward: left at 1320 us");
@@ -214,6 +243,7 @@ int main() {
 
   // -------------------------------------------------------------------------
   std::printf("\n5. with the cliff still tripped, forward is refused\n");
+  setFrontDistance(300);            // sky clear 30 cm ahead: forward is allowed
   Serial.feed("W 1320 1680\n");
   runLoops(3);
   checkInt(static_cast<long>(g_pca_channels[6]), 1500, "forward command became neutral (left)");
@@ -229,6 +259,7 @@ int main() {
 
   // -------------------------------------------------------------------------
   std::printf("\n7. FMEA #11: the 500 ms host-liveness timeout\n");
+  setFrontDistance(300);            // sky clear 30 cm ahead: forward is allowed
   Serial.feed("W 1320 1680\n");             // forward again, floor is clear
   runLoops(2);
   checkInt(static_cast<long>(g_pca_channels[6]), 1320, "moving forward");
@@ -242,6 +273,7 @@ int main() {
   std::printf("\n8. FMEA #12: I2C NACK -> bus recovery -> retry -> cut the enable\n");
   Serial.clearOutput();
   const uint32_t recoveries_before = g_bus.recoveryCount();
+  setFrontDistance(300);            // sky clear 30 cm ahead: forward is allowed
   Serial.feed("W 1320 1680\n");             // get the wheels moving before the bus dies
   runLoops(2);
   injectNackAndRun(g_i2c_errors);
@@ -268,6 +300,7 @@ int main() {
   i2cRecoverAndRetry();
   g_servo_enabled = true;
   Serial.clearOutput();
+  setFrontDistance(300);            // sky clear 30 cm ahead: forward is allowed
   Serial.feed("W 1320 1680\n");
   runLoops(3);
   const uint32_t edge2 = static_cast<uint32_t>(g_fake_us);
@@ -296,6 +329,7 @@ int main() {
   check(Serial.outputContains("\"blended\":true") || true, "blended replies are emitted");
 
   // A single wheel channel must not drag the other one along with a stale stack value.
+  setFrontDistance(300);            // sky clear 30 cm ahead: forward is allowed
   Serial.feed("W 1320 1680\n");
   runLoops(2);
   Serial.feed("M 6:1320\n");
@@ -304,6 +338,7 @@ int main() {
   checkInt(static_cast<long>(g_pca_channels[7]), 1680,
            "`M` with one wheel channel leaves the other wheel untouched");
 
+  setFrontDistance(300);
   Serial.feed("G 500 6:1680\n");
   runLoops(3);
   checkInt(static_cast<long>(g_pca_channels[6]), 1680,
@@ -360,6 +395,29 @@ int main() {
   // "pulseIn" would prove nothing at all.)
 
   std::printf("\n----------------------------------------------------------------------------\n");
+  // -------------------------------------------------------------------------
+  std::printf("\n13. the sonar fails CLOSED - the point of SONAR_REQUIRED_FOR_FORWARD\n");
+  setFrontDistance(40);                     // a wall 4 cm ahead, inside the 80 mm stop
+  Serial.clearOutput();
+  Serial.feed("W 1320 1680\n");
+  runLoops(3);
+  checkInt(static_cast<long>(g_pca_channels[6]), 1500, "an obstacle ahead refuses forward");
+  check(Serial.outputContains("FORWARD_REFUSED"), "the obstacle refusal is reported");
+
+  std::printf("\n14. ... and so does a sonar that stops answering\n");
+  setFrontDistance(300);                    // clear ahead, and the sensor is alive
+  Serial.feed("W 1320 1680\n");
+  runLoops(2);
+  checkInt(static_cast<long>(g_pca_channels[6]), 1320, "forward works while the sensor answers");
+  runLoops(140, 5000);                      // 700 ms of pings that never come back
+  Serial.clearOutput();
+  Serial.feed("W 1320 1680\n");
+  runLoops(3);
+  checkInt(static_cast<long>(g_pca_channels[6]), 1500,
+           "a STALE reading refuses forward instead of driving blind");
+  check(Serial.outputContains("FORWARD_REFUSED"), "the stale-sensor refusal is reported");
+
+
   if (g_failures == 0) {
     std::printf("  PASS: %d / %d checks  (simulated hardware: the sketch is still unflashed)\n",
                 g_checks, g_checks);

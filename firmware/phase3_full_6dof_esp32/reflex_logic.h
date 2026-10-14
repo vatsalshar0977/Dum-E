@@ -341,8 +341,9 @@ class UltrasonicGuard {
   /**
    * Fail-closed once the sensor has proved it works and then goes quiet: a sensor that stops
    * answering is a fault, not a clear road. Before the first reading ever arrives the answer
-   * is `allow_without_sensor`, which defaults to true so the stationary arm bench-tests
-   * without an HC-SR04 fitted - the rover build should set it to false.
+   * is `allow_without_sensor`, which the sketch sets from its SONAR_REQUIRED_FOR_FORWARD
+   * option - true in the shipped build, so a rover fails closed from the very first command.
+   * It is only false for a bench build with no sonar fitted at all.
    */
   bool allowForward(uint32_t now_ms) const {
     if (!have_reading_) {

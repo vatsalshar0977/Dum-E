@@ -284,6 +284,68 @@ class SketchSource(unittest.TestCase):
         self.assertLess(loop_that_fills, first_write,
                         "channels were written before the shadow array was filled")
 
+    def test_the_three_build_options_are_named_and_defaulted_safely(self):
+        """Every decision that depends on the owner's build, in one place, failing closed."""
+        self.assertIn("static const bool CLIFF_TRIPPED_IS_HIGH = true;", self.text)
+        self.assertIn("static const bool SONAR_REQUIRED_FOR_FORWARD = true;", self.text)
+        self.assertIn("static const bool REQUIRE_INA219_TO_ENABLE = true;", self.text)
+        self.assertIn("g_front.requireSensor(SONAR_REQUIRED_FOR_FORWARD);", self.text)
+        # ... and both flags must appear in the boot line, so the log states the configuration.
+        # Raw strings, deliberately: in the sketch these are C string escapes (\"key\"), and a
+        # normal Python literal would collapse the backslash and match the prose comment instead.
+        self.assertIn(r'\"sonar_required_for_forward\":', self.text)
+        self.assertIn(r'\"require_ina219\":', self.text)
+
+    def test_enabling_outputs_without_current_sensing_is_refused(self):
+        """Without the INA219 there is no brownout cut and no e-stop latch - both silently dead."""
+        handler = self.text.split("if (head == 'o')", 1)[1].split("if (head == 'p')", 1)[0]
+        self.assertIn("REQUIRE_INA219_TO_ENABLE && !g_ina_present", handler)
+        self.assertIn("INA219_REQUIRED", handler)
+
+    def test_the_shunt_calibration_is_named_derived_and_reported(self):
+        """A swapped INA219 module must be a one-line edit, not a silent 10x mis-scaling.
+
+        The docs already say the stock 0.1 ohm breakout is not a 5 A part. The firmware used to
+        hard-code `INA219_REG_CALIBRATION, 4096` - correct for that board and wrong for any other,
+        with no way to tell from the log which one was assumed.
+        """
+        self.assertIn("static const float INA219_SHUNT_OHMS", self.text)
+        self.assertIn("static const float INA219_CURRENT_LSB_MA", self.text)
+        self.assertIn("static uint16_t inaCalibration()", self.text)
+        self.assertIn("inaWriteRegister(INA219_REG_CALIBRATION, inaCalibration())", self.text)
+        self.assertNotIn("INA219_REG_CALIBRATION, 4096", self.text,
+                         "the calibration register is hard-coded again")
+        # the current reading must follow the configured LSB rather than a literal 0.1
+        self.assertIn("INA219_CURRENT_LSB_MA;", self.text)
+        # the boot log must state the shunt it assumed (bare token: the sketch writes it as a
+        # C string escape, and a quoted Python literal here would need double-escaping)
+        self.assertIn("INA219_CAL", self.text)
+
+    def test_the_calibration_pair_gives_4096_for_the_stock_shunt(self):
+        """Both documented pairs must land on a 15-bit-safe 4096, or one of them is unlucky."""
+        for ohms, lsb_ma in ((0.1, 0.1), (0.01, 1.0)):
+            cal = int(0.04096 / ((lsb_ma / 1000.0) * ohms))
+            self.assertEqual(cal, 4096, f"{ohms} ohm at {lsb_ma} mA/bit gives cal={cal}")
+
+    def test_the_i2c_timeout_is_inside_the_reflex_budget(self):
+        """A wedged bus must not be able to stall the loop for longer than the deadline.
+
+        This was `Wire.setTimeOut(20)` - four times the 5 ms budget, in a file whose comment
+        claimed otherwise. A legitimate two-channel write is ~200 us, so the ceiling is tight.
+        """
+        match = re.search(r"Wire\.setTimeOut\((\d+)\)", self.text)
+        self.assertIsNotNone(match, "Wire.setTimeOut() disappeared")
+        timeout_ms = int(match.group(1))
+        self.assertLessEqual(timeout_ms, 5,
+                             f"a wedged I2C write can block the loop for {timeout_ms} ms, which "
+                             f"is longer than the 5 ms reflex budget")
+        self.assertGreaterEqual(timeout_ms, 2,
+                                "too tight: a legitimate PCA9685 write must not look like a fault")
+
+    def test_the_calibration_points_are_named_not_buried(self):
+        for needle in ("SERVO_NEUTRAL_US", "WHEEL_STOP_US", "WHEEL_CREEP_US"):
+            self.assertIn(needle, self.text, f"{needle} is not defined at the top of the sketch")
+
     def test_the_cliff_polarity_is_one_named_constant(self):
         """A mismatched TCRT5000 breakout must be a one-line fix, not a code edit hunt."""
         self.assertIn("static const bool CLIFF_TRIPPED_IS_HIGH = true;", self.text)
