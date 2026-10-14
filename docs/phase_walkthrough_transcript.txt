@@ -1,6 +1,6 @@
 ================================================================================================
   B.U.D.-E — PHASE-BY-PHASE WALKTHROUGH
-  Generated 2026-10-14 14:29:09 by src/phase8_safety_testing/run_phase_walkthrough.py
+  Generated 2026-10-14 15:12:09 by src/phase8_safety_testing/run_phase_walkthrough.py
 ================================================================================================
   Every command below is the command you would type. The output is verbatim.
   NOTHING IN THIS TRANSCRIPT WAS MEASURED ON HARDWARE: no part has been printed,
@@ -99,7 +99,7 @@ Part Filename                              X x Y x Z (mm)             Tris  Dege
 07_wrist_pitch_roll_bracket.stl              38.0 x   43.6 x  39.5     1032      0   -8.000       PASS  assembly frame, 108 flat verts at z=-8.0
 08_gripper_body_and_cam_mount.stl            44.0 x   42.0 x  45.0     1084      0   -4.100       PASS  assembly frame, 18 flat verts at z=-4.1
 09_gripper_geared_fingers_pair.stl           57.2 x   54.0 x   6.0      720      0    0.000       PASS  seated on z=0
-10_cable_clips_and_electronics_tray.stl      72.0 x   68.0 x   8.0     1484      0    0.000       PASS  seated on z=0
+10_cable_clips_and_electronics_tray.stl      68.0 x   65.0 x   8.0     1420      0    0.000       PASS  seated on z=0
 11_mobile_rover_chassis.stl                 146.0 x  111.0 x  25.0     2000      0    0.000       PASS  seated on z=0
 12_drive_wheels_and_caster.stl               48.0 x  108.0 x  26.5     3548      0    0.000       PASS  seated on z=0
 --------------------------------------------------------------------------------------------------------
@@ -118,10 +118,10 @@ Part                                 Feature band          Angle  Mean r (mm)  V
 11_mobile_rover_chassis.stl          bosses, z 20..25       135d        36.03    294    +0.03
 11_mobile_rover_chassis.stl          bosses, z 20..25       225d        36.03    294    +0.03
 11_mobile_rover_chassis.stl          bosses, z 20..25       315d        36.03    294    +0.03
-03_base_lower_slewing_ring.stl       nut rings, z 0..2.6      45d        36.06    498    +0.06
-03_base_lower_slewing_ring.stl       nut rings, z 0..2.6     135d        36.06    498    +0.06
-03_base_lower_slewing_ring.stl       nut rings, z 0..2.6     225d        36.06    498    +0.06
-03_base_lower_slewing_ring.stl       nut rings, z 0..2.6     315d        36.06    498    +0.06
+03_base_lower_slewing_ring.stl       nut rings, z 0..2.6      45d        36.07    498    +0.07
+03_base_lower_slewing_ring.stl       nut rings, z 0..2.6     135d        36.07    498    +0.07
+03_base_lower_slewing_ring.stl       nut rings, z 0..2.6     225d        36.07    498    +0.07
+03_base_lower_slewing_ring.stl       nut rings, z 0..2.6     315d        36.07    498    +0.07
 
 ========================================================================================================
   3. DECLARED MATING INTERFACES - SOURCE-LEVEL AGREEMENT, NOT A FIT TEST
@@ -131,7 +131,7 @@ Interface                  Part A                                    Value How y
 Rover bolt circle          11_mobile_rover_chassis.stl            36.00 mm calipers across opposite bolts
 Rover bolt pattern         11_mobile_rover_chassis.stl             4.00 count screws must drop through all four without reaming
 Rover bolt clearance hole  11_mobile_rover_chassis.stl             3.40 mm M3 screw drops through cleanly
-Rover nut trap             03_base_lower_slewing_ring.stl          5.50 mm press your own nut in; measure it first
+Rover nut trap             03_base_lower_slewing_ring.stl          5.90 mm press your own nut in; measure it first
 Rover nut trap depth       03_base_lower_slewing_ring.stl          2.60 mm nut must sit flush or below the plate underside
 J2 straddle gap            05_upper_arm_link_80mm.stl              0.60 mm feeler gauge between clevis and turret
 J3 straddle gap            06_forearm_link_75mm.stl                0.60 mm feeler gauge between clevis and arm
@@ -202,7 +202,7 @@ file                                         tris  degen    z_min  flat vtx   ma
 07_wrist_pitch_roll_bracket.stl              1032      0   -8.000       108      43.6
 08_gripper_body_and_cam_mount.stl            1084      0   -4.100        18      45.0
 09_gripper_geared_fingers_pair.stl            720      0    0.000      1080      57.2
-10_cable_clips_and_electronics_tray.stl      1484      0    0.000      1458      72.0
+10_cable_clips_and_electronics_tray.stl      1420      0    0.000      1362      68.0
 11_mobile_rover_chassis.stl                  2000      0    0.000       624     146.0
 12_drive_wheels_and_caster.stl               3548      0    0.000       432     108.0
 
@@ -211,21 +211,21 @@ file                                         tris  degen    z_min  flat vtx   ma
   an upper bound where primitives overlap. Printed grams will be lower:
   file                                          union mm3   signed mm3    overlap     grams
 ----------------------------------------------------------------------------------------------------------------------
-00_tolerance_test_coupon.stl                      18392        18373          0       23 g
+00_tolerance_test_coupon.stl                      18404        18379          0       23 g
 01_desk_c_clamp_frame.stl                         45216        58707      13491       56 g
 02_desk_c_clamp_screw_and_pad.stl                 16088        16215        127       20 g
-03_base_lower_slewing_ring.stl                   112607       114196       1589      140 g
+03_base_lower_slewing_ring.stl                   112584       114155       1571      140 g
 04_base_upper_turret_j2.stl                       45031        49292       4261       56 g
 05_upper_arm_link_80mm.stl                        36746        38001       1255       46 g
 06_forearm_link_75mm.stl                          26823        27645        822       33 g
 07_wrist_pitch_roll_bracket.stl                   16598        15851          0       21 g
 08_gripper_body_and_cam_mount.stl                 32374        33875       1501       40 g
 09_gripper_geared_fingers_pair.stl                 7302         9301       1999        9 g
-10_cable_clips_and_electronics_tray.stl           13328        13340         12       17 g
-11_mobile_rover_chassis.stl                      128154       136165       8012      159 g
+10_cable_clips_and_electronics_tray.stl           14840        16182       1342       18 g
+11_mobile_rover_chassis.stl                      128710       136769       8060      160 g
 12_drive_wheels_and_caster.stl                    15712        19955       4244       19 g
 ----------------------------------------------------------------------------------------------------------------------
-  Sum of union volumes: 514 cm3 (638 g of 100% solid PLA, before infill).
+  Sum of union volumes: 516 cm3 (640 g of 100% solid PLA, before infill).
   Each part was sampled at its own adaptive grid (1-3 mm, chosen so the thinnest
   declared feature spans at least three voxels).
   Note: the mesh_audit ray-parity volume is NOT used here. Parity is unsound where
@@ -891,7 +891,7 @@ $ python3 src/phase8_safety_testing/run_full_acceptance_suite.py
   P7  Voice and personality: six gestures, deterministic parser PASS
   P8  Safety: six injected faults and the telemetry log    PASS
 --------------------------------------------------------------------------------------------------------
-  50 / 50 checks passed in 27.2 s
+  50 / 50 checks passed in 27.4 s
   VERDICT: PASS
 ========================================================================================================
 
@@ -922,132 +922,134 @@ cachedir: .pytest_cache
 rootdir: /home/user/Dum-E
 configfile: pytest.ini
 testpaths: tests
-collecting ... collected 142 items
+collecting ... collected 144 items
 
-tests/test_docs.py::GuidePaths::test_every_command_block_in_the_checklist_is_a_real_script PASSED [  0%]
+tests/test_deep_cad_audit.py::test_deep_cad_audit_reports_only_known_issues PASSED [  0%]
+tests/test_deep_cad_audit.py::test_audit_checks_every_part PASSED        [  1%]
+tests/test_docs.py::GuidePaths::test_every_command_block_in_the_checklist_is_a_real_script PASSED [  2%]
 tests/test_docs.py::GuidePaths::test_every_path_the_docs_tell_you_to_run_exists 
-tests/test_docs.py::GuidePaths::test_every_path_the_docs_tell_you_to_run_exists PASSED [  1%]
-tests/test_docs.py::GuidePaths::test_the_checklist_covers_every_hardware_gate PASSED [  2%]
-tests/test_docs.py::GuidePaths::test_the_guide_and_checklist_exist PASSED [  2%]
-tests/test_docs.py::GuidePaths::test_the_guide_covers_every_phase PASSED [  3%]
-tests/test_docs.py::GuidePaths::test_the_two_documents_point_at_each_other PASSED [  4%]
-tests/test_docs.py::GuideHonesty::test_it_explains_the_latched_e_stop PASSED [  4%]
-tests/test_docs.py::GuideHonesty::test_it_says_nothing_here_is_evidence_about_hardware PASSED [  5%]
-tests/test_docs.py::GuideHonesty::test_it_says_the_firmware_has_never_been_flashed PASSED [  6%]
-tests/test_docs.py::GuideHonesty::test_it_tells_you_the_e_stop_is_the_only_real_stop PASSED [  7%]
-tests/test_docs.py::GuideHonesty::test_it_warns_about_the_unfitted_cliff_sensor_trap PASSED [  7%]
-tests/test_docs.py::SetupCheck::test_it_runs_from_another_folder_and_names_every_test_module PASSED [  8%]
+tests/test_docs.py::GuidePaths::test_every_path_the_docs_tell_you_to_run_exists PASSED [  2%]
+tests/test_docs.py::GuidePaths::test_the_checklist_covers_every_hardware_gate PASSED [  3%]
+tests/test_docs.py::GuidePaths::test_the_guide_and_checklist_exist PASSED [  4%]
+tests/test_docs.py::GuidePaths::test_the_guide_covers_every_phase PASSED [  4%]
+tests/test_docs.py::GuidePaths::test_the_two_documents_point_at_each_other PASSED [  5%]
+tests/test_docs.py::GuideHonesty::test_it_explains_the_latched_e_stop PASSED [  6%]
+tests/test_docs.py::GuideHonesty::test_it_says_nothing_here_is_evidence_about_hardware PASSED [  6%]
+tests/test_docs.py::GuideHonesty::test_it_says_the_firmware_has_never_been_flashed PASSED [  7%]
+tests/test_docs.py::GuideHonesty::test_it_tells_you_the_e_stop_is_the_only_real_stop PASSED [  8%]
+tests/test_docs.py::GuideHonesty::test_it_warns_about_the_unfitted_cliff_sensor_trap PASSED [  9%]
+tests/test_docs.py::SetupCheck::test_it_runs_from_another_folder_and_names_every_test_module PASSED [  9%]
 tests/test_docs.py::BranchMarkers::test_every_marker_exists_on_this_branch 
-tests/test_docs.py::BranchMarkers::test_every_marker_exists_on_this_branch PASSED [  9%]
-tests/test_docs.py::BranchMarkers::test_the_download_instructions_point_at_this_branch PASSED [  9%]
-tests/test_docs.py::BranchMarkers::test_there_are_enough_markers_to_spot_a_wrong_branch PASSED [ 10%]
-tests/test_docs.py::PytestRunsFromAnyFolder::test_pytest_works_when_launched_from_outside_the_repository PASSED [ 11%]
-tests/test_docs.py::PytestRunsFromAnyFolder::test_the_bootstrap_files_exist PASSED [ 11%]
-tests/test_docs.py::FirmwarePolarityDocs::test_the_wiring_doc_names_the_polarity_constant PASSED [ 12%]
-tests/test_firmware.py::ReflexLogic::test_logic_header_compiles_and_passes PASSED [ 13%]
-tests/test_firmware.py::ReflexLogic::test_the_logic_header_has_no_arduino_dependency PASSED [ 14%]
-tests/test_firmware.py::RealSketchOnHost::test_sketch_compiles_and_passes_its_host_simulation PASSED [ 14%]
-tests/test_firmware.py::RealSketchOnHost::test_the_headline_reflex_is_inside_the_budget_in_the_simulation PASSED [ 15%]
-tests/test_firmware.py::BothCoreGenerations::test_the_legacy_watchdog_branch_still_compiles_and_passes PASSED [ 16%]
-tests/test_firmware.py::BothSensorConventions::test_the_inverted_polarity_build_passes_the_same_suite PASSED [ 16%]
-tests/test_firmware.py::SketchSource::test_channel_list_commands_seed_from_the_shadow PASSED [ 17%]
-tests/test_firmware.py::SketchSource::test_enabling_outputs_without_current_sensing_is_refused PASSED [ 18%]
-tests/test_firmware.py::SketchSource::test_every_host_wheel_command_goes_through_the_guarded_path PASSED [ 19%]
-tests/test_firmware.py::SketchSource::test_fmea_11_watchdog_is_configured PASSED [ 19%]
-tests/test_firmware.py::SketchSource::test_fmea_12_bus_recovery_is_implemented_and_used_at_boot PASSED [ 20%]
-tests/test_firmware.py::SketchSource::test_interrupt_handlers_never_touch_i2c_serial_or_floats PASSED [ 21%]
-tests/test_firmware.py::SketchSource::test_no_blocking_or_unbounded_calls_in_the_loop PASSED [ 21%]
-tests/test_firmware.py::SketchSource::test_the_briefs_pins_and_channels_are_all_there PASSED [ 22%]
-tests/test_firmware.py::SketchSource::test_the_calibration_pair_gives_4096_for_the_stock_shunt PASSED [ 23%]
-tests/test_firmware.py::SketchSource::test_the_calibration_points_are_named_not_buried PASSED [ 23%]
-tests/test_firmware.py::SketchSource::test_the_cliff_polarity_is_one_named_constant PASSED [ 24%]
-tests/test_firmware.py::SketchSource::test_the_harness_walks_the_documented_protocol PASSED [ 25%]
-tests/test_firmware.py::SketchSource::test_the_host_harness_checks_pin_levels_exactly PASSED [ 26%]
-tests/test_firmware.py::SketchSource::test_the_i2c_timeout_is_inside_the_reflex_budget PASSED [ 26%]
-tests/test_firmware.py::SketchSource::test_the_loop_services_the_cliff_before_the_serial_port PASSED [ 27%]
-tests/test_firmware.py::SketchSource::test_the_oe_branch_accepts_its_documented_spelling PASSED [ 28%]
-tests/test_firmware.py::SketchSource::test_the_reflex_numbers_are_the_briefs_numbers PASSED [ 28%]
-tests/test_firmware.py::SketchSource::test_the_shadow_is_initialised_before_any_write PASSED [ 29%]
-tests/test_firmware.py::SketchSource::test_the_shunt_calibration_is_named_derived_and_reported PASSED [ 30%]
-tests/test_firmware.py::SketchSource::test_the_three_build_options_are_named_and_defaulted_safely PASSED [ 30%]
-tests/test_firmware.py::SketchSource::test_the_wheels_are_declared_mirrored PASSED [ 31%]
-tests/test_firmware.py::DocsAgree::test_fmea_rows_11_and_12_are_no_longer_not_implemented PASSED [ 32%]
-tests/test_firmware.py::DocsAgree::test_the_config_agrees_with_the_firmware_channels PASSED [ 33%]
-tests/test_firmware.py::DocsAgree::test_the_wiring_doc_lists_the_new_pins PASSED [ 33%]
-tests/test_foundations.py::Foundations::test_fk_ik_roundtrip PASSED      [ 34%]
-tests/test_foundations.py::Foundations::test_mobile_fail_closed PASSED   [ 35%]
-tests/test_foundations.py::Foundations::test_path_valid_and_invalid PASSED [ 35%]
-tests/test_foundations.py::Foundations::test_plane_projection_and_bad_calibration PASSED [ 36%]
-tests/test_foundations.py::Foundations::test_urdf_chain_and_limits PASSED [ 37%]
+tests/test_docs.py::BranchMarkers::test_every_marker_exists_on_this_branch PASSED [ 10%]
+tests/test_docs.py::BranchMarkers::test_the_download_instructions_point_at_this_branch PASSED [ 11%]
+tests/test_docs.py::BranchMarkers::test_there_are_enough_markers_to_spot_a_wrong_branch PASSED [ 11%]
+tests/test_docs.py::PytestRunsFromAnyFolder::test_pytest_works_when_launched_from_outside_the_repository PASSED [ 12%]
+tests/test_docs.py::PytestRunsFromAnyFolder::test_the_bootstrap_files_exist PASSED [ 13%]
+tests/test_docs.py::FirmwarePolarityDocs::test_the_wiring_doc_names_the_polarity_constant PASSED [ 13%]
+tests/test_firmware.py::ReflexLogic::test_logic_header_compiles_and_passes PASSED [ 14%]
+tests/test_firmware.py::ReflexLogic::test_the_logic_header_has_no_arduino_dependency PASSED [ 15%]
+tests/test_firmware.py::RealSketchOnHost::test_sketch_compiles_and_passes_its_host_simulation PASSED [ 15%]
+tests/test_firmware.py::RealSketchOnHost::test_the_headline_reflex_is_inside_the_budget_in_the_simulation PASSED [ 16%]
+tests/test_firmware.py::BothCoreGenerations::test_the_legacy_watchdog_branch_still_compiles_and_passes PASSED [ 17%]
+tests/test_firmware.py::BothSensorConventions::test_the_inverted_polarity_build_passes_the_same_suite PASSED [ 18%]
+tests/test_firmware.py::SketchSource::test_channel_list_commands_seed_from_the_shadow PASSED [ 18%]
+tests/test_firmware.py::SketchSource::test_enabling_outputs_without_current_sensing_is_refused PASSED [ 19%]
+tests/test_firmware.py::SketchSource::test_every_host_wheel_command_goes_through_the_guarded_path PASSED [ 20%]
+tests/test_firmware.py::SketchSource::test_fmea_11_watchdog_is_configured PASSED [ 20%]
+tests/test_firmware.py::SketchSource::test_fmea_12_bus_recovery_is_implemented_and_used_at_boot PASSED [ 21%]
+tests/test_firmware.py::SketchSource::test_interrupt_handlers_never_touch_i2c_serial_or_floats PASSED [ 22%]
+tests/test_firmware.py::SketchSource::test_no_blocking_or_unbounded_calls_in_the_loop PASSED [ 22%]
+tests/test_firmware.py::SketchSource::test_the_briefs_pins_and_channels_are_all_there PASSED [ 23%]
+tests/test_firmware.py::SketchSource::test_the_calibration_pair_gives_4096_for_the_stock_shunt PASSED [ 24%]
+tests/test_firmware.py::SketchSource::test_the_calibration_points_are_named_not_buried PASSED [ 25%]
+tests/test_firmware.py::SketchSource::test_the_cliff_polarity_is_one_named_constant PASSED [ 25%]
+tests/test_firmware.py::SketchSource::test_the_harness_walks_the_documented_protocol PASSED [ 26%]
+tests/test_firmware.py::SketchSource::test_the_host_harness_checks_pin_levels_exactly PASSED [ 27%]
+tests/test_firmware.py::SketchSource::test_the_i2c_timeout_is_inside_the_reflex_budget PASSED [ 27%]
+tests/test_firmware.py::SketchSource::test_the_loop_services_the_cliff_before_the_serial_port PASSED [ 28%]
+tests/test_firmware.py::SketchSource::test_the_oe_branch_accepts_its_documented_spelling PASSED [ 29%]
+tests/test_firmware.py::SketchSource::test_the_reflex_numbers_are_the_briefs_numbers PASSED [ 29%]
+tests/test_firmware.py::SketchSource::test_the_shadow_is_initialised_before_any_write PASSED [ 30%]
+tests/test_firmware.py::SketchSource::test_the_shunt_calibration_is_named_derived_and_reported PASSED [ 31%]
+tests/test_firmware.py::SketchSource::test_the_three_build_options_are_named_and_defaulted_safely PASSED [ 31%]
+tests/test_firmware.py::SketchSource::test_the_wheels_are_declared_mirrored PASSED [ 32%]
+tests/test_firmware.py::DocsAgree::test_fmea_rows_11_and_12_are_no_longer_not_implemented PASSED [ 33%]
+tests/test_firmware.py::DocsAgree::test_the_config_agrees_with_the_firmware_channels PASSED [ 34%]
+tests/test_firmware.py::DocsAgree::test_the_wiring_doc_lists_the_new_pins PASSED [ 34%]
+tests/test_foundations.py::Foundations::test_fk_ik_roundtrip PASSED      [ 35%]
+tests/test_foundations.py::Foundations::test_mobile_fail_closed PASSED   [ 36%]
+tests/test_foundations.py::Foundations::test_path_valid_and_invalid PASSED [ 36%]
+tests/test_foundations.py::Foundations::test_plane_projection_and_bad_calibration PASSED [ 37%]
+tests/test_foundations.py::Foundations::test_urdf_chain_and_limits PASSED [ 38%]
 tests/test_phase3_tools.py::DriverFrames::test_an_out_of_range_wheel_pulse_is_refused PASSED [ 38%]
-tests/test_phase3_tools.py::DriverFrames::test_channel_frames_offer_both_immediate_and_blended PASSED [ 38%]
-tests/test_phase3_tools.py::DriverFrames::test_drive_speeds_map_to_the_mirrored_pair PASSED [ 39%]
+tests/test_phase3_tools.py::DriverFrames::test_channel_frames_offer_both_immediate_and_blended PASSED [ 39%]
+tests/test_phase3_tools.py::DriverFrames::test_drive_speeds_map_to_the_mirrored_pair PASSED [ 40%]
 tests/test_phase3_tools.py::DriverFrames::test_outputs_frame_uses_the_firmware_polarity PASSED [ 40%]
-tests/test_phase3_tools.py::DriverFrames::test_wheel_frame_is_exactly_the_documented_shape PASSED [ 40%]
-tests/test_phase3_tools.py::DriverJointTable::test_angles_clamp_to_the_servo_travel PASSED [ 41%]
-tests/test_phase3_tools.py::DriverJointTable::test_gripper_percentage_covers_closed_to_open PASSED [ 42%]
-tests/test_phase3_tools.py::DriverJointTable::test_home_is_one_blended_frame_over_all_six_channels PASSED [ 42%]
-tests/test_phase3_tools.py::DriverJointTable::test_six_arm_joints_on_channels_zero_to_five PASSED [ 43%]
-tests/test_phase3_tools.py::DriverCli::test_an_arm_move_refuses_a_wheel_channel PASSED [ 44%]
+tests/test_phase3_tools.py::DriverFrames::test_wheel_frame_is_exactly_the_documented_shape PASSED [ 41%]
+tests/test_phase3_tools.py::DriverJointTable::test_angles_clamp_to_the_servo_travel PASSED [ 42%]
+tests/test_phase3_tools.py::DriverJointTable::test_gripper_percentage_covers_closed_to_open PASSED [ 43%]
+tests/test_phase3_tools.py::DriverJointTable::test_home_is_one_blended_frame_over_all_six_channels PASSED [ 43%]
+tests/test_phase3_tools.py::DriverJointTable::test_six_arm_joints_on_channels_zero_to_five PASSED [ 44%]
+tests/test_phase3_tools.py::DriverCli::test_an_arm_move_refuses_a_wheel_channel PASSED [ 45%]
 tests/test_phase3_tools.py::DriverCli::test_dry_run_ping_sends_nothing_and_succeeds PASSED [ 45%]
-tests/test_phase3_tools.py::DriverCli::test_no_arguments_prints_examples_rather_than_opening_a_port PASSED [ 45%]
-tests/test_phase3_tools.py::DriverCli::test_the_driver_and_the_firmware_agree PASSED [ 46%]
+tests/test_phase3_tools.py::DriverCli::test_no_arguments_prints_examples_rather_than_opening_a_port PASSED [ 46%]
+tests/test_phase3_tools.py::DriverCli::test_the_driver_and_the_firmware_agree PASSED [ 47%]
 tests/test_phase3_tools.py::WiringVerifier::test_it_passes_and_checks_a_meaningful_number_of_things PASSED [ 47%]
-tests/test_phase3_tools.py::WiringVerifier::test_json_mode_is_parseable_and_agrees PASSED [ 47%]
-tests/test_phase3_tools.py::WiringVerifier::test_the_voltage_drop_grows_as_the_wire_gets_thinner PASSED [ 48%]
-tests/test_phase3_tools.py::UrdfVerifier::test_it_passes PASSED          [ 49%]
+tests/test_phase3_tools.py::WiringVerifier::test_json_mode_is_parseable_and_agrees PASSED [ 48%]
+tests/test_phase3_tools.py::WiringVerifier::test_the_voltage_drop_grows_as_the_wire_gets_thinner PASSED [ 49%]
+tests/test_phase3_tools.py::UrdfVerifier::test_it_passes PASSED          [ 50%]
 tests/test_phase3_tools.py::UrdfVerifier::test_straight_up_is_the_folded_link_stack PASSED [ 50%]
-tests/test_phase3_tools.py::UrdfVerifier::test_the_urdf_walk_and_the_solver_are_the_same_robot PASSED [ 50%]
-tests/test_phase3_tools.py::OtherEntryPoints::test_a_single_named_fault_still_works PASSED [ 51%]
+tests/test_phase3_tools.py::UrdfVerifier::test_the_urdf_walk_and_the_solver_are_the_same_robot PASSED [ 51%]
+tests/test_phase3_tools.py::OtherEntryPoints::test_a_single_named_fault_still_works PASSED [ 52%]
 tests/test_phase3_tools.py::OtherEntryPoints::test_the_moveit_bridge_has_a_dry_run PASSED [ 52%]
-tests/test_phase3_tools.py::OtherEntryPoints::test_the_supervisor_accepts_fault_all PASSED [ 52%]
-tests/test_phase5_phase6.py::RoverParts::test_all_thirteen_parts_are_valid_and_seated PASSED [ 53%]
+tests/test_phase3_tools.py::OtherEntryPoints::test_the_supervisor_accepts_fault_all PASSED [ 53%]
+tests/test_phase5_phase6.py::RoverParts::test_all_thirteen_parts_are_valid_and_seated PASSED [ 54%]
 tests/test_phase5_phase6.py::RoverParts::test_bolt_circle_is_inside_the_base_flange PASSED [ 54%]
-tests/test_phase5_phase6.py::RoverParts::test_every_declared_interface_names_a_real_part PASSED [ 54%]
-tests/test_phase5_phase6.py::RoverParts::test_rover_bolt_circle_exists_in_both_halves PASSED [ 55%]
+tests/test_phase5_phase6.py::RoverParts::test_every_declared_interface_names_a_real_part PASSED [ 55%]
+tests/test_phase5_phase6.py::RoverParts::test_rover_bolt_circle_exists_in_both_halves PASSED [ 56%]
 tests/test_phase5_phase6.py::Planner::test_intermediate_samples_are_checked PASSED [ 56%]
 tests/test_phase5_phase6.py::Planner::test_keep_out_geometry PASSED      [ 57%]
-tests/test_phase5_phase6.py::Planner::test_loop_travel_is_only_one_term_of_a_stopping_distance PASSED [ 57%]
-tests/test_phase5_phase6.py::Planner::test_start_and_goal_are_each_checked PASSED [ 58%]
+tests/test_phase5_phase6.py::Planner::test_loop_travel_is_only_one_term_of_a_stopping_distance PASSED [ 58%]
+tests/test_phase5_phase6.py::Planner::test_start_and_goal_are_each_checked PASSED [ 59%]
 tests/test_phase5_phase6.py::Planner::test_valid_move_reproduces_endpoints_and_respects_speed_limits PASSED [ 59%]
-tests/test_phase5_phase6.py::InverseKinematics::test_adaptation_labels_the_pitch_it_achieved PASSED [ 59%]
-tests/test_phase5_phase6.py::InverseKinematics::test_fail_closed_by_default PASSED [ 60%]
+tests/test_phase5_phase6.py::InverseKinematics::test_adaptation_labels_the_pitch_it_achieved PASSED [ 60%]
+tests/test_phase5_phase6.py::InverseKinematics::test_fail_closed_by_default PASSED [ 61%]
 tests/test_phase5_phase6.py::InverseKinematics::test_strict_solutions_come_first_when_the_exact_pitch_is_reachable PASSED [ 61%]
-tests/test_phase5_phase6.py::CameraModel::test_camera_transform_is_a_proper_rotation PASSED [ 61%]
-tests/test_phase5_phase6.py::CameraModel::test_intersect_rejects_a_bad_transform PASSED [ 62%]
+tests/test_phase5_phase6.py::CameraModel::test_camera_transform_is_a_proper_rotation PASSED [ 62%]
+tests/test_phase5_phase6.py::CameraModel::test_intersect_rejects_a_bad_transform PASSED [ 63%]
 tests/test_phase5_phase6.py::CameraModel::test_nominal_intrinsics_follow_the_pinhole_formula PASSED [ 63%]
 tests/test_phase5_phase6.py::CameraModel::test_project_and_intersect_are_inverses PASSED [ 64%]
-tests/test_phase5_phase6.py::CameraModel::test_projection_round_trip_closes PASSED [ 64%]
+tests/test_phase5_phase6.py::CameraModel::test_projection_round_trip_closes PASSED [ 65%]
 tests/test_phase5_phase6.py::MobilePolicy::test_cliff_reflex_reverses_and_turns PASSED [ 65%]
 tests/test_phase5_phase6.py::MobilePolicy::test_fail_closed PASSED       [ 66%]
-tests/test_phase5_phase6.py::MobilePolicy::test_fetch_simulation_arrives_at_the_standoff PASSED [ 66%]
-tests/test_phase5_phase6.py::MobilePolicy::test_latency_budget_adds_up_and_rejects_nonsense PASSED [ 67%]
+tests/test_phase5_phase6.py::MobilePolicy::test_fetch_simulation_arrives_at_the_standoff PASSED [ 67%]
+tests/test_phase5_phase6.py::MobilePolicy::test_latency_budget_adds_up_and_rejects_nonsense PASSED [ 68%]
 tests/test_phase5_phase6.py::MobilePolicy::test_pca_finds_a_known_axis PASSED [ 68%]
 tests/test_phase5_phase6.py::MobilePolicy::test_pca_refuses_a_symmetric_blob PASSED [ 69%]
-tests/test_phase5_phase6.py::MobilePolicy::test_pca_rejects_junk_input PASSED [ 69%]
+tests/test_phase5_phase6.py::MobilePolicy::test_pca_rejects_junk_input PASSED [ 70%]
 tests/test_phase5_phase6.py::Ros2ConfigDrafts::test_controller_config_only_names_real_joints PASSED [ 70%]
 tests/test_phase5_phase6.py::Ros2ConfigDrafts::test_srdf_is_valid_and_agrees_with_the_code PASSED [ 71%]
-tests/test_phase5_phase6.py::WebViewerModel::test_js_constants_match_the_python_constants PASSED [ 71%]
+tests/test_phase5_phase6.py::WebViewerModel::test_js_constants_match_the_python_constants PASSED [ 72%]
 tests/test_phase5_phase6.py::WebViewerModel::test_js_fk_matches_python_fk PASSED [ 72%]
 tests/test_phase7_phase8.py::GestureLibrary::test_an_infeasible_gesture_is_refused_at_construction PASSED [ 73%]
-tests/test_phase7_phase8.py::GestureLibrary::test_every_keyframe_is_inside_the_joint_limits PASSED [ 73%]
-tests/test_phase7_phase8.py::GestureLibrary::test_min_jerk_duration_matches_the_1875_rule PASSED [ 74%]
+tests/test_phase7_phase8.py::GestureLibrary::test_every_keyframe_is_inside_the_joint_limits PASSED [ 74%]
+tests/test_phase7_phase8.py::GestureLibrary::test_min_jerk_duration_matches_the_1875_rule PASSED [ 75%]
 tests/test_phase7_phase8.py::GestureLibrary::test_minimum_jerk_is_rest_to_rest PASSED [ 75%]
 tests/test_phase7_phase8.py::GestureLibrary::test_peak_speed_never_exceeds_its_own_budget PASSED [ 76%]
-tests/test_phase7_phase8.py::GestureLibrary::test_sampling_is_100hz_and_starts_at_zero PASSED [ 76%]
+tests/test_phase7_phase8.py::GestureLibrary::test_sampling_is_100hz_and_starts_at_zero PASSED [ 77%]
 tests/test_phase7_phase8.py::GestureLibrary::test_six_gestures_and_every_one_validates PASSED [ 77%]
 tests/test_phase7_phase8.py::GestureLibrary::test_the_cliff_reflex_reverses_then_stops_the_wheels PASSED [ 78%]
-tests/test_phase7_phase8.py::GestureLibrary::test_the_gesture_budget_is_larger_than_the_transport_budget PASSED [ 78%]
+tests/test_phase7_phase8.py::GestureLibrary::test_the_gesture_budget_is_larger_than_the_transport_budget PASSED [ 79%]
 tests/test_phase7_phase8.py::Director::test_a_gesture_returns_to_its_declared_pose PASSED [ 79%]
 tests/test_phase7_phase8.py::Director::test_a_lower_priority_event_does_not_interrupt_a_playing_gesture PASSED [ 80%]
-tests/test_phase7_phase8.py::Director::test_grasp_detection_is_one_sided PASSED [ 80%]
+tests/test_phase7_phase8.py::Director::test_grasp_detection_is_one_sided PASSED [ 81%]
 tests/test_phase7_phase8.py::Director::test_halt_stops_the_wheels_and_ignores_everything_until_resume PASSED [ 81%]
 tests/test_phase7_phase8.py::Director::test_the_cliff_reflex_pre_empts_anything PASSED [ 82%]
 tests/test_phase7_phase8.py::Director::test_the_idle_loop_starts_only_after_the_idle_timeout PASSED [ 83%]
-tests/test_phase7_phase8.py::Director::test_the_wake_word_starts_the_head_tilt PASSED [ 83%]
+tests/test_phase7_phase8.py::Director::test_the_wake_word_starts_the_head_tilt PASSED [ 84%]
 tests/test_phase7_phase8.py::Language::test_fetch_fills_the_tool_slot PASSED [ 84%]
 tests/test_phase7_phase8.py::Language::test_fetch_stows_the_arm_before_any_wheel_command PASSED [ 85%]
-tests/test_phase7_phase8.py::Language::test_follow_me_runs_the_cliff_reflex_when_a_sensor_trips PASSED [ 85%]
+tests/test_phase7_phase8.py::Language::test_follow_me_runs_the_cliff_reflex_when_a_sensor_trips PASSED [ 86%]
 tests/test_phase7_phase8.py::Language::test_halt_plays_no_gesture PASSED [ 86%]
 tests/test_phase7_phase8.py::Language::test_home_perched_is_a_real_pose PASSED [ 87%]
 tests/test_phase7_phase8.py::Language::test_screwdriver_does_not_contain_a_stop PASSED [ 88%]
@@ -1057,7 +1059,7 @@ tests/test_phase7_phase8.py::Language::test_unknown_text_moves_nothing PASSED [ 
 tests/test_phase7_phase8.py::Language::test_wheel_pulse_mapping_is_centred_on_stop PASSED [ 90%]
 tests/test_phase7_phase8.py::Language::test_whisper_absence_is_not_a_crash PASSED [ 91%]
 tests/test_phase7_phase8.py::Supervisor::test_a_short_current_spike_does_not_trip PASSED [ 92%]
-tests/test_phase7_phase8.py::Supervisor::test_all_six_injected_faults_are_handled PASSED [ 92%]
+tests/test_phase7_phase8.py::Supervisor::test_all_six_injected_faults_are_handled PASSED [ 93%]
 tests/test_phase7_phase8.py::Supervisor::test_brownout_cuts_torque_and_clears_only_when_stable PASSED [ 93%]
 tests/test_phase7_phase8.py::Supervisor::test_cliff_stops_the_wheels_in_the_same_tick PASSED [ 94%]
 tests/test_phase7_phase8.py::Supervisor::test_estop_latches_and_release_does_not_jump PASSED [ 95%]
@@ -1069,9 +1071,9 @@ tests/test_phase7_phase8.py::Supervisor::test_the_supervisor_trips_before_the_do
 tests/test_phase7_phase8.py::Supervisor::test_unknown_fault_name_is_refused PASSED [ 99%]
 tests/test_phase7_phase8.py::AcceptanceSuite::test_the_master_suite_runs_and_does_not_error PASSED [100%]
 
-=================== 142 passed, 10 subtests passed in 5.54s ====================
+=================== 144 passed, 10 subtests passed in 10.35s ===================
 ------------------------------------------------------------------------------------------------
-  -> exit 0 (OK)   summary: 142 passed
+  -> exit 0 (OK)   summary: 144 passed
 
 ================================================================================================
   WALKTHROUGH SUMMARY
@@ -1111,7 +1113,7 @@ tests/test_phase7_phase8.py::AcceptanceSuite::test_the_master_suite_runs_and_doe
          $ python3 src/phase8_safety_testing/safety_supervisor_and_logger.py --fault all --seconds 6 --no-log
   8      0      VERDICT: PASS
          $ python3 src/phase8_safety_testing/run_full_acceptance_suite.py
-  8      0      142 passed
+  8      0      144 passed
          $ python3 -m pytest -v
 
   18 of 18 commands exited 0.

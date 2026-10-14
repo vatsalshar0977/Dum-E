@@ -71,7 +71,7 @@ from generate_stl_parts import (                                                
     WHEEL_DIAMETER_MM, WHEEL_THICKNESS_MM, STRADDLE_GAP_TOTAL,
     J2_OUTER_Y, J3_OUTER_Y, J4_OUTER_Y, J2_Y_NEG, J3_Y_NEG, J4_Y_NEG,
     J2_AXIS_Z_IN_04, J3_AXIS_Z_IN_05, J4_AXIS_Z_IN_06, J5_AXIS_X_IN_07,
-    J5_AXIS_Z_IN_07, J6_AXIS_X_IN_08, J6_AXIS_Z_IN_08,
+    J5_AXIS_Z_IN_07, J6_AXIS_X_IN_08, J6_AXIS_Z_IN_08, J6_LEFT_Y, J6_RIGHT_Y,
 )
 
 # How many separate pieces each file is DESIGNED to print as. A union of overlapping
@@ -182,6 +182,222 @@ def tri_signed_volume(tri) -> float:
     return (ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx)) / 6.0
 
 
+def point_tri_distance(p, tri) -> float:
+    """Distance from a point to a triangle (0.0 when the point is inside it)."""
+    (ax, ay, az), (bx, by, bz), (cx, cy, cz) = tri
+    abx, aby, abz = bx - ax, by - ay, bz - az
+    acx, acy, acz = cx - ax, cy - ay, cz - az
+    apx, apy, apz = p[0] - ax, p[1] - ay, p[2] - az
+    d1 = abx * apx + aby * apy + abz * apz
+    d2 = acx * apx + acy * apy + acz * apz
+    if d1 <= 0.0 and d2 <= 0.0:
+        return math.dist(p, (ax, ay, az))
+    bpx, bpy, bpz = p[0] - bx, p[1] - by, p[2] - bz
+    d3 = abx * bpx + aby * bpy + abz * bpz
+    d4 = acx * bpx + acy * bpy + acz * bpz
+    if d3 >= 0.0 and d4 <= d3:
+        return math.dist(p, (bx, by, bz))
+    vc = d1 * d4 - d3 * d2
+    if vc <= 0.0 <= d1 and d3 <= 0.0:
+        t = d1 / (d1 - d3) if d1 != d3 else 0.0
+        return math.dist(p, (ax + t * abx, ay + t * aby, az + t * abz))
+    cpx, cpy, cpz = p[0] - cx, p[1] - cy, p[2] - cz
+    d5 = abx * cpx + aby * cpy + abz * cpz
+    d6 = acx * cpx + acy * cpy + acz * cpz
+    if d6 >= 0.0 and d5 <= d6:
+        return math.dist(p, (cx, cy, cz))
+    vb = d5 * d2 - d1 * d6
+    if vb <= 0.0 <= d2 and d6 <= 0.0:
+        t = d2 / (d2 - d6) if d2 != d6 else 0.0
+        return math.dist(p, (ax + t * acx, ay + t * acy, az + t * acz))
+    va = d3 * d6 - d5 * d4
+    if va <= 0.0 and (d4 - d3) >= 0.0 and (d5 - d6) >= 0.0:
+        t = (d4 - d3) / ((d4 - d3) + (d5 - d6)) if (d4 - d3) != (d6 - d5) else 0.0
+        return math.dist(p, (bx + t * (cx - bx), by + t * (cy - by), bz + t * (cz - bz)))
+    denom = va + vb + vc
+    if abs(denom) < 1e-18:
+        return math.dist(p, (ax, ay, az))
+    v = vb / denom
+    w = vc / denom
+    return math.dist(p, (ax + abx * v + acx * w, ay + aby * v + acy * w,
+                         az + abz * v + acz * w))
+
+
+def sets_min_distance(tris_a, tris_b, cell: float = 4.0) -> float:
+    """Smallest gap between two triangle sets, to the sampling limit of their own vertices.
+
+    Both directions are sampled: every vertex of A against B's triangles and vice versa. A
+    knife-edge (face-on-face) contact is found exactly, because the touching face's own
+    vertices land on the other surface. A crossing pair scores 0.0 as well.
+    """
+    def grid(tris):
+        cells: Dict[Tuple[int, int, int], List[int]] = {}
+        for i, t in enumerate(tris):
+            lo = [min(t[0][k], t[1][k], t[2][k]) for k in range(3)]
+            hi = [max(t[0][k], t[1][k], t[2][k]) for k in range(3)]
+            for ix in range(int(math.floor(lo[0] / cell)), int(math.floor(hi[0] / cell)) + 1):
+                for iy in range(int(math.floor(lo[1] / cell)), int(math.floor(hi[1] / cell)) + 1):
+                    for iz in range(int(math.floor(lo[2] / cell)), int(math.floor(hi[2] / cell)) + 1):
+                        cells.setdefault((ix, iy, iz), []).append(i)
+        return cells
+
+    best = float("inf")
+    for src, dst in ((tris_a, tris_b), (tris_b, tris_a)):
+        if not src or not dst:
+            continue
+        cells = grid(dst)
+        for t in src:
+            for p in t:
+                here = (int(math.floor(p[0] / cell)), int(math.floor(p[1] / cell)),
+                        int(math.floor(p[2] / cell)))
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        for dz in (-1, 0, 1):
+                            for j in cells.get((here[0] + dx, here[1] + dy, here[2] + dz), ()):
+                                d = point_tri_distance(p, dst[j])
+                                if d < best:
+                                    best = d
+                                    if best <= 1e-7:
+                                        return 0.0
+    return best
+
+
+def segment_tri_hit(p, q, tri, eps: float = 1e-7):
+    """True when segment pq passes through the triangle's interior (Moller-Trumbore).
+
+    Coplanar cases return False on purpose: two faces that lie in the same plane are touching
+    or overlapping in 2-D, not one drilling through the other. Those are caught by the
+    distance side of `sets_relation` instead.
+    """
+    (ax, ay, az), (bx, by, bz), (cx, cy, cz) = tri
+    e1x, e1y, e1z = bx - ax, by - ay, bz - az
+    e2x, e2y, e2z = cx - ax, cy - ay, cz - az
+    dx, dy, dz = q[0] - p[0], q[1] - p[1], q[2] - p[2]
+    hx = dy * e2z - dz * e2y
+    hy = dz * e2x - dx * e2z
+    hz = dx * e2y - dy * e2x
+    det = e1x * hx + e1y * hy + e1z * hz
+    if abs(det) < 1e-12:
+        return False                       # parallel (or coplanar): not a crossing
+    inv = 1.0 / det
+    sx, sy, sz = p[0] - ax, p[1] - ay, p[2] - az
+    u = (sx * hx + sy * hy + sz * hz) * inv
+    if u < -eps or u > 1.0 + eps:
+        return False
+    qx = sy * e1z - sz * e1y
+    qy = sz * e1x - sx * e1z
+    qz = sx * e1y - sy * e1x
+    v = (dx * qx + dy * qy + dz * qz) * inv
+    if v < -eps or u + v > 1.0 + eps:
+        return False
+    t = (e2x * qx + e2y * qy + e2z * qz) * inv
+    return eps < t < 1.0 - eps
+
+
+def sets_relation(tris_a, tris_b, cell: float = 4.0, inside_checks: int = 16,
+                  distance: bool = True):
+    """How two triangle sets sit relative to each other: 'cross', 'touch', 'inside', 'apart'.
+
+    'cross'  - a triangle edge of one passes through a triangle of the other (material through
+               material: the two solids interpenetrate)
+    'touch'  - surfaces meet, within the sampling tolerance, without crossing (a face-to-face
+               contact, which slices as one piece)
+    'inside' - a sampled vertex of one is enclosed by the other (a swallowed solid: an internal
+               shell nobody can print around)
+    'apart'  - a real air gap; the second value is the sampled gap in mm
+    """
+    def grid(tris):
+        cells: Dict[Tuple[int, int, int], List[int]] = {}
+        for i, t in enumerate(tris):
+            lo = [min(t[0][k], t[1][k], t[2][k]) for k in range(3)]
+            hi = [max(t[0][k], t[1][k], t[2][k]) for k in range(3)]
+            for ix in range(int(math.floor(lo[0] / cell)), int(math.floor(hi[0] / cell)) + 1):
+                for iy in range(int(math.floor(lo[1] / cell)), int(math.floor(hi[1] / cell)) + 1):
+                    for iz in range(int(math.floor(lo[2] / cell)), int(math.floor(hi[2] / cell)) + 1):
+                        cells.setdefault((ix, iy, iz), []).append(i)
+        return cells
+
+    for src, dst in ((tris_a, tris_b), (tris_b, tris_a)):
+        if not src or not dst:
+            continue
+        cells = grid(dst)
+        for t in src:
+            for k in range(3):
+                p, q = t[k], t[(k + 1) % 3]
+                key = (p, q) if p <= q else (q, p)
+                lo = [min(p[m], q[m]) for m in range(3)]
+                hi = [max(p[m], q[m]) for m in range(3)]
+                for ix in range(int(math.floor(lo[0] / cell)), int(math.floor(hi[0] / cell)) + 1):
+                    for iy in range(int(math.floor(lo[1] / cell)),
+                                    int(math.floor(hi[1] / cell)) + 1):
+                        for iz in range(int(math.floor(lo[2] / cell)),
+                                        int(math.floor(hi[2] / cell)) + 1):
+                            for j in cells.get((ix, iy, iz), ()):
+                                if segment_tri_hit(p, q, dst[j]):
+                                    return "cross", 0.0
+        # no crossing: is one solid swallowed by the other?
+        step = max(1, len(src) // max(1, inside_checks))
+        for t in src[::step]:
+            if inside_robust(tri_list_mesh(dst), t[0]) is True:
+                return "inside", 0.0
+    if not distance:
+        return "apart", float("inf")
+    d = sets_min_distance(tris_a, tris_b, cell)
+    if d <= 0.02:
+        return "touch", d
+    return "apart", d
+
+
+def tri_list_mesh(tris, name: str = "pair") -> Mesh:
+    """A throwaway Mesh wrapping a triangle list, so `inside_robust` can be reused on it."""
+    return Mesh([v for t in tris for v in t], name=name, cell_mm=4.0)
+
+def material_bodies(mesh: Mesh, contact_mm: float = 0.02):
+    """The bodies a slicer would actually print: edge-connected groups that also touch.
+
+    `edge_components` splits the file at every edge it does not share - which is one body per
+    primitive, even where two primitives are fused into one lump. Two groups separated by less
+    than `contact_mm` of air are one printed piece; a larger gap prints as two. This is the
+    test that tells a deliberate two-part file from a link that falls apart in the slicer.
+    """
+    tris = list(mesh.tris)
+    _pts, ids = weld(tris)
+    comps = components(tris, ids)
+    groups = [[tris[f] for f in comp] for comp in comps]
+    parent = list(range(len(groups)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def aabb(ts):
+        lo = [min(min(t[k][m] for k in range(3)) for t in ts) for m in range(3)]
+        hi = [max(max(t[k][m] for k in range(3)) for t in ts) for m in range(3)]
+        return lo, hi
+
+    boxes = [aabb(g) for g in groups]
+    contacts = []
+    for i in range(len(groups)):
+        for j in range(i + 1, len(groups)):
+            ai, bi = boxes[i]
+            aj, bj = boxes[j]
+            gap = max(max(aj[k] - bi[k], ai[k] - bj[k]) for k in range(3))
+            if gap > 1.0:               # bounding boxes rule it out; no need to sample
+                continue
+            kind, d = sets_relation(groups[i], groups[j])
+            if kind in ("cross", "inside") or d <= contact_mm:
+                contacts.append((i, j, d, kind))
+                ra, rb = find(i), find(j)
+                if ra != rb:
+                    parent[ra] = rb
+    bodies: Dict[int, List[int]] = {}
+    for i in range(len(groups)):
+        bodies.setdefault(find(i), []).append(i)
+    return list(bodies.values()), contacts, groups
+
+
 def tri_area(tri) -> float:
     (ax, ay, az), (bx, by, bz), (cx, cy, cz) = tri
     ux, uy, uz = bx - ax, by - ay, bz - az
@@ -242,51 +458,30 @@ def audit_topology(name: str, mesh: Mesh, quick: bool) -> None:
     # generator unions overlapping solids. The number that matters for printing is how many
     # clusters of mutually OVERLAPPING (or touching) bodies a slicer would see, which is a
     # 3-axis AABB overlap test with a small tolerance.
-    boxes = []
-    for group in comps:
-        xs = [v for f in group for v in (tris[f][0][0], tris[f][1][0], tris[f][2][0])]
-        ys = [v for f in group for v in (tris[f][0][1], tris[f][1][1], tris[f][2][1])]
-        zs = [v for f in group for v in (tris[f][0][2], tris[f][1][2], tris[f][2][2])]
-        boxes.append((min(xs), max(xs), min(ys), max(ys), min(zs), max(zs)))
-    parents = list(range(len(comps)))
-
-    def find(i: int) -> int:
-        while parents[i] != i:
-            parents[i] = parents[parents[i]]
-            i = parents[i]
-        return i
-
-    for i in range(len(boxes)):
-        for j in range(i + 1, len(boxes)):
-            a, b = boxes[i], boxes[j]
-            if (a[0] - 0.05 < b[1] and b[0] - 0.05 < a[1]
-                    and a[2] - 0.05 < b[3] and b[2] - 0.05 < a[3]
-                    and a[4] - 0.05 < b[5] and b[4] - 0.05 < a[5]):
-                ra, rb = find(i), find(j)
-                if ra != rb:
-                    parents[ra] = rb
-    clusters: Dict[int, List[int]] = {}
-    for i in range(len(comps)):
-        clusters.setdefault(find(i), []).append(i)
     want = DECLARED_BODIES.get(name, 1)
+    bodies, contacts, groups = material_bodies(mesh)
+    rows = []
+    for body in bodies:
+        ts = [t for c in body for t in groups[c]]
+        xs = [t[k][0] for t in ts for k in range(3)]
+        ys = [t[k][1] for t in ts for k in range(3)]
+        zs = [t[k][2] for t in ts for k in range(3)]
+        vol = sum(tri_signed_volume(t) for t in ts)
+        rows.append((vol, f"{vol:7.0f} mm3 [{min(xs):.0f}..{max(xs):.0f}, {min(ys):.0f}.."
+                          f"{max(ys):.0f}, {min(zs):.0f}..{max(zs):.0f}]"))
+    detail = f"{len(bodies)} printed piece(s) from {len(groups)} edge-disjoint solid(s)"
+    if contacts:
+        gaps = sorted(c[2] for c in contacts)
+        kinds: Dict[str, int] = {}
+        for c in contacts:
+            kinds[c[3]] = kinds.get(c[3], 0) + 1
+        detail += ("; " + ", ".join(f"{n} {k}" for k, n in sorted(kinds.items()))
+                   + f", tightest {gaps[0] * 1000:.0f} um")
     record("topology", f"{name} :: prints as {want} piece(s), not more",
-           len(clusters) == want,
-           f"{len(clusters)} body cluster(s) of touching/overlapping material for a declared "
-           f"{want}; {len(comps)} edge-disjoint solid(s) went in")
-
-    if not quick and len(comps) > 1:
-        # Multi-body files are deliberate (a pair of fingers, two wheels and a caster), but a
-        # body that nobody meant to create is a bug: list them, largest first.
-        rows = []
-        for group in sorted(comps, key=lambda g: -sum(tri_signed_volume(tris[f]) for f in g))[:8]:
-            xs = [v for f in group for v in (tris[f][0][0], tris[f][1][0], tris[f][2][0])]
-            ys = [v for f in group for v in (tris[f][0][1], tris[f][1][1], tris[f][2][1])]
-            zs = [v for f in group for v in (tris[f][0][2], tris[f][1][2], tris[f][2][2])]
-            rows.append(f"{len(group)}t vol {sum(tri_signed_volume(tris[f]) for f in group):8.1f} "
-                        f"mm3 bbox [{min(xs):.0f}..{max(xs):.0f}, {min(ys):.0f}..{max(ys):.0f}, "
-                        f"{min(zs):.0f}..{max(zs):.0f}]")
-        record("topology", f"{name} :: disjoint bodies are intentional", True,
-               f"{len(comps)} bodies :: " + " | ".join(rows))
+           len(bodies) == want, detail)
+    if not quick:
+        record("topology", f"{name} :: what the slicer gets", True,
+               " | ".join(text for _vol, text in sorted(rows)[::-1]))
 
 
 # =============================================================================
@@ -686,6 +881,17 @@ def audit_fits(meshes: Dict[str, Mesh], quick: bool) -> None:
         slack = measured - case.nominal_mm
         if case.kind == "pilot":
             ok, verdict = 2.4 <= measured <= 3.2, "ok"
+        elif case.kind == "trap":
+            # A nut trap is a calibration feature, not a precision bore. The test is whether the
+            # trap swallows the worst nut the BOM promises to accept (5.8 mm across flats, see
+            # `M3_NUT_ACROSS_FLATS_MM`) at the size it is DRAWN - that is what the coupon is
+            # for: you print it, measure, and re-scale before cutting the real part. Judging it
+            # on the worst-case shrink instead would fail every trap in the model and hide the
+            # number that actually matters.
+            worst_bom_nut = 5.80
+            ok = measured >= worst_bom_nut + 0.05
+            verdict = "accepts the BOM nut" if ok else "TOO TIGHT"
+            margin = measured - case.nominal_mm
         elif margin >= 0.10:
             ok, verdict = True, "ok"
         elif margin >= 0.0:
@@ -937,6 +1143,56 @@ def audit_interference(meshes: Dict[str, Mesh], quick: bool) -> None:
         worst_inside = 0
         worst_walked = 0
         worst_at = None
+        # A second, independent instrument: an edge of the child passing through a triangle
+        # of the parent. Point sampling can miss a clash that lives between its samples; a
+        # crossing cannot, because the two surfaces really do intersect.
+        parent_cells: Dict[Tuple[int, int, int], List[int]] = {}
+        for i, t in enumerate(parent.tris):
+            lo = [min(t[k][m] for k in range(3)) for m in range(3)]
+            hi = [max(t[k][m] for k in range(3)) for m in range(3)]
+            for ix in range(int(math.floor(lo[0] / 4.0)), int(math.floor(hi[0] / 4.0)) + 1):
+                for iy in range(int(math.floor(lo[1] / 4.0)), int(math.floor(hi[1] / 4.0)) + 1):
+                    for iz in range(int(math.floor(lo[2] / 4.0)), int(math.floor(hi[2] / 4.0)) + 1):
+                        parent_cells.setdefault((ix, iy, iz), []).append(i)
+
+        def crossings(deg: float):
+            th = math.radians(deg)
+            c, sn = math.cos(th), math.sin(th)
+            seen = set()
+            n = 0
+            first = None
+            for tri in child.tris:
+                pts_r = []
+                for x, y, z in tri:
+                    if axis == 1:
+                        dx, dz = x, z
+                        x, z = c * dx + sn * dz, -sn * dx + c * dz
+                    pts_r.append((x + shift[0], y + shift[1], z + shift[2]))
+                for k in range(3):
+                    a, b = pts_r[k], pts_r[(k + 1) % 3]
+                    key = (a, b) if a <= b else (b, a)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    lo = [min(a[m], b[m]) for m in range(3)]
+                    hi = [max(a[m], b[m]) for m in range(3)]
+                    for ix in range(int(math.floor(lo[0] / 4.0)),
+                                    int(math.floor(hi[0] / 4.0)) + 1):
+                        for iy in range(int(math.floor(lo[1] / 4.0)),
+                                        int(math.floor(hi[1] / 4.0)) + 1):
+                            for iz in range(int(math.floor(lo[2] / 4.0)),
+                                            int(math.floor(hi[2] / 4.0)) + 1):
+                                for j in parent_cells.get((ix, iy, iz), ()):
+                                    if segment_tri_hit(a, b, parent.tris[j]):
+                                        n += 1
+                                        if first is None:
+                                            first = ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0,
+                                                     (a[2] + b[2]) / 2.0)
+            return n, first
+
+        worst_cross = 0
+        worst_cross_angle = 0.0
+        worst_cross_at = None
         for deg in angles:
             th = math.radians(deg)
             c, sn = math.cos(th), math.sin(th)
@@ -973,13 +1229,86 @@ def audit_interference(meshes: Dict[str, Mesh], quick: bool) -> None:
                 worst_inside = inside
                 worst_angle = deg
                 worst_at = first_bad
+            n_cross, cross_at = crossings(deg)
+            if n_cross > worst_cross:
+                worst_cross = n_cross
+                worst_cross_angle = deg
+                worst_cross_at = cross_at
         detail = (f"{worst_inside} of {worst_walked} sampled points of the child sit inside "
                   f"the parent at {fmt(worst_angle, 1)} deg")
+        if worst_cross:
+            detail += (f" and {worst_cross} child edge(s) pass through the parent's surface at "
+                       f"{fmt(worst_cross_angle, 1)} deg, first at "
+                       f"({fmt(worst_cross_at[0], 1)}, {fmt(worst_cross_at[1], 1)}, "
+                       f"{fmt(worst_cross_at[2], 1)})")
         if worst_at is not None:
             detail += (f"; first offender at ({fmt(worst_at[1][0], 1)}, {fmt(worst_at[1][1], 1)}, "
                        f"{fmt(worst_at[1][2], 1)}) mm in the parent frame")
         record("clearance", f"{joint} :: child never enters the parent through the travel",
-               worst_inside == 0, detail)
+               worst_inside == 0 and worst_cross == 0, detail)
+
+
+
+def audit_claw_interface(meshes: Dict[str, Mesh], quick: bool) -> None:
+    """Measure the J6 claw interface the way the assembly would, from the vertices alone.
+
+    08_gripper_body_and_cam_mount carries two pivot sleeves at (J6_AXIS_X_IN_08, +/-11 mm);
+    09_gripper_geared_fingers_pair carries the two hubs that must land on them plus the gear
+    teeth that must reach each other at the centre line. Nothing else in this tool looks at
+    either part, and both facts are pure geometry, so both are measured here:
+
+      * the sleeve and hub circles are fitted with the same two-pass `bore_measure` used in
+        section C, at the positions the two builders declare;
+      * the tooth reach is `min|y|` over the claw's vertices - the closest either finger comes
+        to the centre line - because a 1:1 pair only meshes if the two rings touch there.
+    """
+    palm = meshes.get("08_gripper_body_and_cam_mount.stl")
+    claw = meshes.get("09_gripper_geared_fingers_pair.stl")
+    if palm is None or claw is None:
+        return
+
+    sleeves = []
+    for sy in (J6_LEFT_Y, J6_RIGHT_Y):
+        m = bore_measure(palm, "Z", (J6_AXIS_X_IN_08, sy, 0.0), (31.5, 41.5), 4.0)
+        if m is None:
+            record("placement", f"claw :: palm pivot sleeve at y = {fmt(sy, 1)} mm", False,
+                   "no circular sleeve in the z 31.5..41.5 mm band")
+            return
+        sleeves.append((m[0], m[1]))
+    palm_pitch = abs(sleeves[0][0][1] - sleeves[1][0][1])
+
+    hubs = []
+    for sy in (-16.0, 16.0):
+        m = bore_measure(claw, "Z", (0.0, sy, 0.0), (-0.5, 6.5), 3.05)
+        if m is None:
+            record("placement", "claw :: the finger hubs are round, measurable bores", False,
+                   f"no hub bore found at y = {sy}")
+            return
+        hubs.append((m[0], m[1]))
+    claw_pitch = abs(hubs[0][0][1] - hubs[1][0][1])
+
+    record("placement", "claw :: finger hubs land on the palm's pivot sleeves",
+           abs(palm_pitch - claw_pitch) <= 0.40,
+           f"the palm's sleeves are {fmt(palm_pitch, 2)} mm apart (declared y = "
+           f"{fmt(J6_LEFT_Y, 1)} / {fmt(J6_RIGHT_Y, 1)}), the claw's hubs are "
+           f"{fmt(claw_pitch, 2)} mm apart (hard-coded y = -16.0 / 16.0) - "
+           f"{fmt(abs(claw_pitch - palm_pitch), 2)} mm of mismatch, and no single translation "
+           f"mates the pair")
+    for i in range(2):
+        record("placement", f"claw :: finger hub {i + 1} slides over its sleeve",
+               hubs[i][1] >= sleeves[i][1] + 0.40,
+               f"palm sleeve OD {fmt(sleeves[i][1], 2)} mm vs finger hub bore "
+               f"{fmt(hubs[i][1], 2)} mm ({fmt(hubs[i][1] - sleeves[i][1], 2)} mm: the hub "
+               f"cannot go on at any pitch)")
+
+    centre_gap = 2.0 * min(abs(v[1]) for v in claw.verts)
+    record("placement", "claw :: the two tooth rings reach each other at the centre line",
+           centre_gap <= 0.60,
+           f"the fingers stay {fmt(centre_gap, 2)} mm apart on the centre line "
+           f"({fmt(centre_gap / 2.0, 2)} mm short per finger); at a {fmt(claw_pitch, 1)} mm "
+           f"pivot pitch a 1:1 pair needs its teeth out to r = {fmt(claw_pitch / 2.0, 2)} mm, "
+           f"and build_09 draws them at r = 9.0 mm (the same docstring advertises a 22 mm "
+           f"pitch circle, i.e. r = 11.0)")
 
 
 # =============================================================================
@@ -1034,6 +1363,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     audit_placement(MESHES, args.quick)
     print("  --- clearance ---")
     audit_interference(MESHES, args.quick)
+    audit_claw_interface(MESHES, args.quick)
 
     # ---- report ---------------------------------------------------------------------
     lines: List[str] = []
