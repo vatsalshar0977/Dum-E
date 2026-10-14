@@ -51,7 +51,8 @@ from generate_stl_parts import (                                    # noqa: E402
     M3_NUT_TRAP_DEPTH_MM, MATERIAL_PROBES, MG996R_BODY_L, MG996R_BODY_W,
     MG996R_CASE_ALONG_AXIS, MG996R_HORN_BORE_D, MG996R_SPLINE_OFFSET, MG90S_BODY_L,
     MG90S_BODY_W, MG90S_CASE_ALONG_AXIS, MG90S_HORN_BORE_D, MG90S_SPLINE_OFFSET,
-    PASSIVE_BORE_D, ROVER_BOLT_ANGLES_DEG, ROVER_BOLT_CIRCLE_R_MM, WALL_T,
+    PASSIVE_BORE_D, ROVER_BOLT_ANGLES_DEG, ROVER_BOLT_CIRCLE_R_MM, SERVO_POCKET_CLEARANCE_MM,
+    WALL_T,
     WHEEL_DIAMETER_MM, WHEEL_THICKNESS_MM, AXIAL_FIT_TOTAL_MM, PART_FILENAMES,
     build_all_parts,
 )
@@ -346,15 +347,22 @@ def audit_pockets(meshes: Dict[str, object]) -> None:
             check("pockets", f"{pc.part} :: {pc.joint} cavity interior",
                   f"({ox:.2f}, {oy:.2f}, {oz:.2f}) is solid, expected air", False)
 
+        # The X rays run 0.13 mm off the cavity's centre line and the Y rays 0.13 mm off it in
+        # X. On the centre line a ray can graze the seam shared by two triangles of a wall
+        # face, and an even-odd count then reads a wall 0.10 mm nearer than it is drawn; 0.13
+        # mm is far below the 0.05 mm tolerance this section tests to.
+        eps = 0.13
+        probe_x = (ox, oy + eps, oz)
+        probe_y = (ox + eps, oy, oz)
         hits = {
-            "+X": cavity_span(mesh, probe, 0, True),
-            "-X": cavity_span(mesh, probe, 0, False),
-            "+Y": cavity_span(mesh, probe, 1, True),
-            "-Y": cavity_span(mesh, probe, 1, False),
+            "+X": cavity_span(mesh, probe_x, 0, True),
+            "-X": cavity_span(mesh, probe_x, 0, False),
+            "+Y": cavity_span(mesh, probe_y, 1, True),
+            "-Y": cavity_span(mesh, probe_y, 1, False),
             "-Z": cavity_span(mesh, probe, 2, False),
             "+Z": cavity_span(mesh, probe, 2, True),
         }
-        expected_half = pc.body_l / 2.0 + 0.25
+        expected_half = pc.body_l / 2.0 + SERVO_POCKET_CLEARANCE_MM / 2.0
         span_x = None
         if hits["+X"] is not None and hits["-X"] is not None:
             span_x = hits["+X"] + hits["-X"]
@@ -410,14 +418,24 @@ def audit_pockets(meshes: Dict[str, object]) -> None:
             # An upright servo hangs its case below the spline face, so the usable height is
             # from the pocket floor to whatever closes the top: a bored ceiling plate if there
             # is one, otherwise the top of the tower.
-            if hits["+Z"] is not None:
-                top_z = oz + hits["+Z"]
+            #
+            # This one measurement is taken 4 mm off the case's centre line. At the wrist the
+            # seat has a deliberate 3.5 mm slot on that line: the forearm's J4 driven plate
+            # sweeps through y = 0..3, so a floor that reached across the centre would be cut
+            # by it as soon as the wrist pitched. 4 mm is still under the case (12.2 mm wide),
+            # so the number reported is the height the servo itself sees.
+            seat = (ox, oy - 4.0, oz)
+            floor_hit = cavity_span(mesh, seat, 2, False)
+            top_hit = cavity_span(mesh, seat, 2, True)
+            if top_hit is not None:
+                top_z = oz + top_hit
                 how = "closed by a plate"
             else:
                 near = [p[2] for p in mesh.verts
                         if abs(p[0] - ox) <= 25.0 and abs(p[1] - oy) <= 25.0]
                 top_z = max(near) if near else float("nan")
                 how = "open top"
+            floor_z = (oz - floor_hit) if floor_hit is not None else float("nan")
             axial_span = top_z - floor_z if not math.isnan(top_z) else None
             axial_txt = (f"{axial_span:.2f} mm ({how})"
                          if axial_span is not None else "n/a")

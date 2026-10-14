@@ -19,22 +19,22 @@ below are **measured from the delivered STL bytes**, not restated from the sourc
 
 | File Name | Measured `X x Y x Z` (mm) | PLA at 100% solid | Declared print orientation |
 |---|---|---:|---|
-| `00_tolerance_test_coupon.stl` | `84.0 x 40.0 x 13.0` | `23 g` | Flat on the base plate |
-| `01_desk_c_clamp_frame.stl` | `58.0 x 80.0 x 18.0` | `56 g` | Lying on its side so the layer lines wrap the C-profile |
-| `02_desk_c_clamp_screw_and_pad.stl` | `61.0 x 32.0 x 60.0` | `20 g` | Knob flat on the bed |
-| `03_base_lower_slewing_ring.stl` | `120.0 x 92.0 x 42.0` | `140 g` | Plate flat on the bed |
-| `04_base_upper_turret_j2.stl` | `74.0 x 77.0 x 46.0` | `56 g` | Slewing disk flat on the bed |
-| `05_upper_arm_link_80mm.stl` | `127.5 x 66.1 x 34.0` | `46 g` | Flat on the bed |
-| `06_forearm_link_75mm.stl` | `115.0 x 63.1 x 27.0` | `33 g` | Flat on the bed |
-| `07_wrist_pitch_roll_bracket.stl` | `38.0 x 43.6 x 39.5` | `21 g` | Clevis flanks down, J5 ceiling up |
-| `08_gripper_body_and_cam_mount.stl` | `44.0 x 42.0 x 45.0` | `40 g` | Palm back flat on the bed |
-| `09_gripper_geared_fingers_pair.stl` | `57.2 x 54.0 x 6.0` | `9 g` | Flat on the gear face at 0.16 mm layers |
-| `10_cable_clips_and_electronics_tray.stl` | `72.0 x 68.0 x 8.0` | `17 g` | Flat on the bed |
-| `11_mobile_rover_chassis.stl` | `146.0 x 111.0 x 25.0` | `159 g` | Deck down, side plates vertical |
-| `12_drive_wheels_and_caster.stl` | `48.0 x 108.0 x 26.5` | `19 g` | Wheels flat with the axis vertical, caster cup mouth up |
+| `00_tolerance_test_coupon.stl` | `84.0 x 40.0 x 13.0` | `22.5 g` | Flat on the base plate |
+| `01_desk_c_clamp_frame.stl` | `58.0 x 80.0 x 18.0` | `47.2 g` | Lying on its side so the layer lines wrap the C-profile |
+| `02_desk_c_clamp_screw_and_pad.stl` | `61.0 x 32.0 x 60.0` | `19.4 g` | Knob flat on the bed |
+| `03_base_lower_slewing_ring.stl` | `120.0 x 92.0 x 42.0` | `135.4 g` | Plate flat on the bed |
+| `04_base_upper_turret_j2.stl` | `74.0 x 77.0 x 46.0` | `58.6 g` | Slewing disk flat on the bed |
+| `05_upper_arm_link_80mm.stl` | `126.5 x 49.6 x 34.0` | `32.0 g` | Flat on the bed |
+| `06_forearm_link_75mm.stl` | `102.0 x 47.6 x 23.0` | `21.2 g` | Flat on the bed |
+| `07_wrist_pitch_roll_bracket.stl` | `38.0 x 42.8 x 47.5` | `17.8 g` | Clevis flanks down, J5 ceiling up |
+| `08_gripper_body_and_cam_mount.stl` | `44.0 x 42.0 x 45.0` | `38.0 g` | Palm back flat on the bed |
+| `09_gripper_geared_fingers_pair.stl` | `59.0 x 47.8 x 6.0` | `7.0 g` | Flat on the gear face at 0.16 mm layers |
+| `10_cable_clips_and_electronics_tray.stl` | `72.0 x 78.0 x 8.0` | `20.5 g` | Flat on the bed |
+| `11_mobile_rover_chassis.stl` | `146.0 x 111.0 x 25.0` | `151.0 g` | Deck down, side plates vertical |
+| `12_drive_wheels_and_caster.stl` | `48.0 x 108.0 x 26.5` | `14.6 g` | Wheels flat with the axis vertical, caster cup mouth up |
 
-Measured envelope and union volume come from the STL bytes and the declared primitives, the same numbers `verify_assembly_fit.py` asserts. The 13 parts are **639 g of
-100% solid PLA**; at 3 perimeters and 20% infill a slicer will report roughly 300 g (~$5.40 at $18/kg).
+Measured envelope and union volume come from the STL bytes and the declared primitives, the same numbers `verify_assembly_fit.py` asserts. The 13 parts are **585 g of
+100% solid PLA**; at 3 perimeters and 20% infill a slicer will report roughly 275 g (~$5.00 at $18/kg).
 
 The STLs are exported in the **assembly frame**: a joint axis is the origin, so parts `05`,
 `06`, `07` and `08` legitimately start below `z = 0`. `verify_print_parts.py` checks that the
@@ -53,7 +53,7 @@ Consumer FDM printers vary by $\pm 0.15\text{ mm}$ due to filament flow rate and
 | **1. `MG996R` Body Pocket** | `40.7 × 20.2 mm` | `41.20 × 20.70 mm` (`+0.25 mm`/side) | Sliding fit with zero wobble. If too tight, re-run generator with `--clearance-mm 0.32`. |
 | **2. `MG90S` Body Pocket** | `22.8 × 12.4 mm` | `23.30 × 12.90 mm` (`+0.25 mm`/side) | Snug push fit by hand. |
 | **3. Captive `M3` Hex Nut Trap** | `5.90 mm` across flats (a cheap chinese M3 nut, measured) | `5.90 mm` across flats as generated — **0.00 mm clearance**, which the deep audit below flags. Open it to `6.15 mm` (`+0.25 mm`) before printing part `03` for real | Press in an M3 hex nut with thumb pressure or pull it in with an M3 screw once the trap is opened up. Replaces brass heat-set inserts! |
-| **4. Double-Shear `6.0 mm` Pin & Bore** | `6.00 mm` OD pin | `6.30 mm` ID bore (`+0.30 mm` diametral) | Should spin freely with zero radial play after rubbing a tiny dab of PTFE/lithium grease (or dry bar soap) on the pin. |
+| **4. Double-Shear `6.0 mm` Pin & Bore** | `6.00 mm` OD pin | `6.60 mm` ID bore (`+0.60 mm` diametral) | Should spin freely with zero radial play after rubbing a tiny dab of PTFE/lithium grease (or dry bar soap) on the pin. |
 
 ```bash
 # If your printer prints slightly tight (e.g., textured PEI or high-flow PLA), regenerate all STLs with 0.32 mm clearance:
@@ -144,18 +144,67 @@ and measure across opposite bolts with calipers.
 `src/phase2_mechanical/deep_cad_audit.py` re-derives every number in this document from the
 shipped STL bytes - topology, true volume and mass, first-layer area and overhang, every bore
 at both ends of a `+/-0.15 mm` printer, servo pocket clearances, board footprints in the tray,
-and interference between mating links through a `-5..+5 deg` joint sweep. It runs 215 checks
-and currently reports 202 pass / 13 open items:
+claw tooth phase, and interference between every mating link over the whole declared travel.
+It runs **230 checks** and currently reports **230 pass, 0 open items**.
 
-* **J3 and J4 interference**: each link's side rails run the full length of the link, so they
-  pass through the next link's clevis cheeks (`2.5 mm` of overlap in `+Y`, `0.5 mm` in `-Y`).
-  The elbow and wrist will not go together as drawn;
-* **the wrist's `+Y` side plate crosses the J5 servo pocket**, leaving `9.6 mm` of the
-  `12.2 mm` the `MG90S` case needs;
-* the `M3` nut traps, the rover wheel hub bore (`0.06 mm` on a `4.9 mm` boss), the `6 mm`
-  passive-pin bores and the `J1`/`J4` servo pockets all sit at, or inside, nominal once the
-  printer's tolerance is applied;
-* the electronics tray holds the `PCA9685` alone - the `ESP32` and the `INA219` have to stack.
+The first audit of these files reported **13 open items** and they were real: the geometry was
+rebuilt rather than re-documented. What it found and what changed:
+
+* **J3 and J4 could not be assembled.** Each link's side rails ran the full length of the link
+  and passed straight through the next link's clevis cheeks (`2.5 mm` of overlap in `+Y`,
+  `0.5 mm` in `-Y`), and the upper arm's crossbar crossed the turret plate at `y = 0`. Both
+  links' cheeks now run from behind their own proximal axis to **22 mm short of the distal
+  axis** (`05`: `x = -16..58 mm` against `J3` at `80 mm`; `06`: `x = -14..56 mm` against `J4`
+  at `75 mm`), because the next link's cheeks sweep through the same `y` band. The crossbar is
+  gone: the two cheeks are tied by a rib **under** the distal servo housing (`05`: `x = 50..58`,
+  `06`: `x = 48..56`) at a radius of `50-58 mm` from its own proximal axis, outside everything
+  the parent link owns. The rubber-band post on `05` is carried by a strip that reaches back to
+  `x = -30.5 mm`. **No link is any wider than it was**;
+* **the wrist's `+Y` side plate crossed the J5 servo pocket.** It ran the full height of the
+  bracket and put `2.5 mm` of wall straight through the opening. It now exists only where the
+  `J4` clevis needs it (`z = -8..12 mm`) and again above the servo (`z = 34 mm` up), and the
+  pocket is a socket with a hand-split `-X` wall and floor: two of its faces must not cross
+  `y = 0..3 mm`, because the forearm's `J4` driven plate sweeps through that band `10 mm`
+  below the socket and would cut a floor that reached across the centre line. The servo is
+  located by its ears and the ceiling bore instead;
+* **the claw and the wheels were built about the wrong centre.** Their teeth/spokes were
+  generated about the part origin instead of their own hub, so the two fingers did not mesh
+  and the wheel spokes missed their rims. Both are now built about the hub (`add_rib_z` takes
+  `cx`/`cy`), the claw's two fingers each carry **12 teeth that reach `13.00 / 12.78 mm` from
+  their own hub centre** where the `22.0 mm` hub pitch needs `11.00 mm`, with a `15 deg` phase
+  offset so the teeth interleave rather than collide. The finger hub bores measure `8.90 mm`
+  over the palm's `8.0 mm` sleeves, and the wheel hub bore is `5.5 mm`;
+* **the electronics tray was smaller than the boards it carries.** It is now a `71 x 65 mm`
+  plate with `66 x 60 mm` of usable area (`3960 mm^2`) against the `3825 mm^2` of the three
+  boards, so the `ESP32`, the `PCA9685` and the `INA219` all sit flat side by side.
+
+Two more findings were fixed while re-running the verifiers on the rebuilt files:
+
+* the camera bezel on `08` started at `x = -5.35 mm`, i.e. `0.10 mm` *inside* the J6 servo
+  cavity, over the corner of the case; it now starts at `-5.55 mm`;
+* the J6 pocket was still the old `+0.5 mm` and is now the same `+0.90 mm` total clearance
+  (`+0.45 mm`/side) as every other servo pocket, so all six pockets are one rule.
+
+What is *not* "fixed", because it is the design:
+
+* the `M3` nut traps, the `6.6 mm` passive-pin bores and the wheel hub bore are all at or
+  inside nominal at the pessimistic end of the `+/-0.15 mm` printer; the audit prints the
+  margin per fit. Print `00_tolerance_test_coupon.stl` first and measure - that is what it is
+  for;
+* the tray holds the three small boards flat, but nothing else: the servo power supply and
+  the battery live on the desk, not on the arm.
+
+The **mechanical stops are declared from the measured clash angles**, so the firmware clamps
+inside them:
+
+| Joint | Declared travel | First contact (measured) |
+|---|---|---|
+| J2 | `-55 .. +20 deg` | `-70.0 deg` on the minus side, `+25.0 deg` on the plus side |
+| J3 | `-90 .. +90 deg` | no contact anywhere in `+/-90 deg` |
+| J4 | `-25 .. +55 deg` | `-40.0 deg` on the minus side, `+70.0 deg` on the plus side |
+
+J2's plus-side contact is only `5 deg` past its clamp, so **do not raise the J2 limit above
+`+20 deg`** without re-running the audit.
 
 Run it yourself before you print anything:
 
@@ -223,7 +272,7 @@ of the four stations. A nut will drop in and cannot turn.
 ## B.3 The audit: `verify_assembly_fit.py`
 
 ```
-python3 src/phase2_mechanical/verify_assembly_fit.py          # 206 checks
+python3 src/phase2_mechanical/verify_assembly_fit.py          # 204 checks
 python3 src/phase2_mechanical/verify_assembly_fit.py --voxel 3  # coarser, faster
 ```
 
@@ -246,7 +295,7 @@ It re-reads `cad/stl/*.stl` - the files you print - and measures:
   `45 / 135 / 225 / 315 deg`, wheel tyre radius (`24.00 mm`), hub bore, and the chassis axle
   bore on the wheel axis.
 
-Current result: **206 / 206 checks PASS**, and `verify_print_parts.py` PASS.
+Current result: **204 / 204 checks PASS**, and `verify_print_parts.py` PASS.
 
 ## B.4 Honest limits of this appendix
 

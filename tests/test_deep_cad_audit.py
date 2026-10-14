@@ -2,9 +2,10 @@
 anything NEW on its own.
 
 `known_issues` below is the ledger of everything the audit reports about the 13 shipped STL
-files at this commit. Fixing a listed item keeps this test green (the assertion is a subset
-test); a fresh geometric defect - a bore that moves, a pocket that shrinks, a body that comes
-apart - adds an entry and fails, loudly.
+files at this commit. It is EMPTY: the rebuilt 04-09 links, the claw on the palm's own pivot
+pitch and the re-scaled tray clear every check. The assertion is a subset test, so a fresh
+geometric defect - a bore that moves, a pocket that shrinks, a body that comes apart - adds an
+entry and fails, loudly.
 """
 
 from __future__ import annotations
@@ -16,30 +17,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 AUDIT = ROOT / "src" / "phase2_mechanical" / "deep_cad_audit.py"
 
-# (section, check name) as printed by the audit's failure tally.
-known_issues = {
-    ('clearance :: J2', 'child never enters the parent through the travel'),
-    ('clearance :: J3', 'child never enters the parent through the travel'),
-    ('clearance :: J4', 'child never enters the parent through the travel'),
-    ('fits :: passive pin bore, forearm', 'assembles at worst-case print error'),
-    ('fits :: passive pin bore, upper arm', 'assembles at worst-case print error'),
-    ('fits :: wheel hub bore, left', 'assembles at worst-case print error'),
-    ('fits :: wheel hub bore, right', 'assembles at worst-case print error'),
-    ('placement :: J1 MG996R in the base tower', 'case still fits at worst-case print error'),
-    ('placement :: J4 MG90S in the forearm', 'case still fits at worst-case print error'),
-    ('placement :: J5 MG90S in the wrist', 'case 12.2 mm fits along Y'),
-    ('placement :: J5 MG90S in the wrist', 'case still fits at worst-case print error'),
-    ('placement :: claw', 'finger hub 1 slides over its sleeve'),
-    ('placement :: claw', 'finger hub 2 slides over its sleeve'),
-    ('placement :: claw', "finger hubs land on the palm's pivot sleeves"),
-    ('placement :: claw', 'the two tooth rings reach each other at the centre line'),
-    ('placement :: tray', 'all three boards fit without stacking'),
-    ('topology :: 04_base_upper_turret_j2.stl', 'prints as 1 piece(s), not more'),
-    ('topology :: 05_upper_arm_link_80mm.stl', 'prints as 1 piece(s), not more'),
-    ('topology :: 06_forearm_link_75mm.stl', 'prints as 1 piece(s), not more'),
-    ('topology :: 07_wrist_pitch_roll_bracket.stl', 'prints as 1 piece(s), not more'),
-    ('topology :: 12_drive_wheels_and_caster.stl', 'prints as 3 piece(s), not more'),
-}
+# (section, check name) as printed by the audit's failure tally - empty as of this commit.
+known_issues: set = set()
 
 
 def failing_checks(text: str):

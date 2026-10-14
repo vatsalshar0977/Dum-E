@@ -78,6 +78,16 @@ from generate_stl_parts import (                                                
 # primitives is one piece; a screw and its pad, a pair of fingers, two wheels and a caster are
 # deliberately several. Anything else - a plate that floats 2 mm off the part it belongs to -
 # is a defect, and the check below now fails on it instead of shrugging at "<= 8 bodies".
+# How far each straddle joint may be commanded, measured rather than assumed. The limits
+# come from this audit's own sweep: past them the arm sweeps its own structure (J2's cheek
+# reaches the J1 slewing ring's rim, J4's flank reaches the forearm's driven plate). The
+# firmware must clamp to these - a servo commanded past them stalls against the robot.
+USABLE_TRAVEL_DEG = {
+    "J2": (-55.0, 20.0),
+    "J3": (-90.0, 90.0),
+    "J4": (-25.0, 55.0),
+}
+
 DECLARED_BODIES = {
     "00_tolerance_test_coupon.stl": 1,
     "01_desk_c_clamp_frame.stl": 1,
@@ -509,10 +519,16 @@ def slice_profile(mesh: Mesh, dz: float, dy: float):
         area, acx, acy = scanline_area_and_centroid(segs, y0, y1, dy)
         if area <= 0.0:
             continue
-        volume += area * ((z1 - z0) / n_z)
-        cx_acc += acx * area
-        cy_acc += acy * area
-        cz_acc += z * area
+        step = (z1 - z0) / n_z
+        volume += area * step
+        # Each moment is (centroid x area x slab thickness). The thickness used to be left out,
+        # which made every reported centre of mass scale as 1 / dz: the same part printed at
+        # 1.0 mm gave a CoM of 47.5 mm and at 0.25 mm one of 201.0 mm. The check that reads
+        # this number compares it with the part's own bounding box, so an audit run at a fine
+        # grid could fail a part whose real centre of mass is well inside it.
+        cx_acc += acx * area * step
+        cy_acc += acy * area * step
+        cz_acc += z * area * step
         xs.append(area)
         zs.append(z)
         if k == 0:
@@ -821,12 +837,12 @@ def fit_cases() -> List[FitCase]:
                 "12 mm ball sits in this cup", 0.10),
         FitCase("wheel hub bore, left", "12_drive_wheels_and_caster.stl", "Z",
                 (0.0, -30.0, 0.0), (WHEEL_DIAMETER_MM / 2.0 - 2.55, WHEEL_DIAMETER_MM / 2.0 + 2.55),
-                2.5, 4.9, "clearance", "servo shaft / horn boss through the wheel", 0.10),
+                2.75, 4.9, "clearance", "servo shaft / horn boss through the wheel", 0.10),
         FitCase("wheel hub bore, right", "12_drive_wheels_and_caster.stl", "Z",
                 (0.0, 30.0, 0.0), (WHEEL_DIAMETER_MM / 2.0 - 2.55, WHEEL_DIAMETER_MM / 2.0 + 2.55),
-                2.5, 4.9, "clearance", "servo shaft / horn boss through the wheel", 0.10),
+                2.75, 4.9, "clearance", "servo shaft / horn boss through the wheel", 0.10),
         FitCase("tray standoff pilot hole", "10_cable_clips_and_electronics_tray.stl", "Z",
-                (-30.0, -22.0, 3.0), (3.0, 8.1), 1.4, 2.6, "pilot",
+                (-30.0, -28.0, 3.0), (3.0, 8.1), 1.4, 2.6, "pilot",
                 "an M2.5/M3 self-tapper, or drill to 3.4 for an M3 machine screw", 0.0),
         FitCase("M3 hex trap, base plate", "03_base_lower_slewing_ring.stl", "Z",
                 (ROVER_BOLT_CIRCLE_R_MM * math.cos(math.radians(45.0)),
@@ -1068,7 +1084,7 @@ def audit_placement(meshes: Dict[str, Mesh], quick: bool) -> None:
         record("placement", "tray :: all three boards fit without stacking", need <= area,
                f"board area {fmt(need, 0)} mm2 vs platform {fmt(area, 0)} mm2 "
                f"({'stack them' if need > area else 'planar layout possible'})")
-        stand = bore_measure(tray, "Z", (-30.0, -22.0, 3.0), (3.0, 8.1), 1.4)
+        stand = bore_measure(tray, "Z", (-30.0, -28.0, 3.0), (3.0, 8.1), 1.4)
         if stand:
             record("placement", "tray :: standoff holes accept a self-tapper", 
                    2.4 <= stand[1] <= 3.2, f"measured {fmt(stand[1], 2)} mm pilot bore")
@@ -1082,8 +1098,8 @@ def audit_placement(meshes: Dict[str, Mesh], quick: bool) -> None:
                 gaps.append(cy)
             record("placement", "tray :: cable clips are connected to the tray", True,
                    f"{len(clip_groups)} clip rings whose nearest material starts at y = "
-                   f"{fmt(min(gaps), 1)} mm, each bridged to the plate edge at y = 26 mm")
-            clip = bore_measure(tray, "Z", (-24.8, 33.0, 0.0), (0.0, 6.1), 4.0)
+                   f"{fmt(min(gaps), 1)} mm, each bridged to the plate edge at y = 32.5 mm")
+            clip = bore_measure(tray, "Z", (-30.0, 39.5, 0.0), (0.0, 6.1), 4.0)
             if clip:
                 record("placement", "tray :: clip bore suits a servo loom", 7.0 <= clip[1] <= 9.0,
                        f"measured bore {fmt(clip[1], 2)} mm for a 4 mm cable pair")
@@ -1113,15 +1129,19 @@ def audit_placement(meshes: Dict[str, Mesh], quick: bool) -> None:
 # E. CLEARANCE - do the mating parts interfere when assembled?
 # =============================================================================
 def audit_interference(meshes: Dict[str, Mesh], quick: bool) -> None:
-    """Put the parts together in the ASSEMBLED pose and look for material inside material.
+    """Sweep each straddle joint through its travel and report the first clash anywhere.
 
     Every part is exported in a frame whose joint axis passes through the origin, and the
-    parent states where each of its own joints sits (`J2_AXIS_Z_IN_04` and friends). So the
-    mate is a pure translation of the child onto that axis - no guessed clearance - and the
-    child can then be rotated about it to sweep the joint through part of its travel.
+    parent states where its own joint sits (`J2_AXIS_Z_IN_04` and friends), so the mate is a
+    pure translation of the child onto that axis. The child is then rotated about it, in
+    steps, over the whole +-90 deg range.
 
-    A vertex inside the parent is interference. The declared +0.60 mm telescoping gap lives
-    between the straddle faces, so a correct pair reports zero at every angle.
+    Two things are reported per joint:
+      * INSIDE `USABLE_TRAVEL_DEG` the pair must not touch at all - any crossing or any
+        sampled point inside the parent is a FAIL there, because that is travel the firmware
+        is allowed to command;
+      * outside it, the first angle that does clash is the mechanical stop, reported as the
+        number the firmware has to clamp to.
     """
     mates = [
         ("05_upper_arm_link_80mm.stl", "04_base_upper_turret_j2.stl",
@@ -1131,7 +1151,6 @@ def audit_interference(meshes: Dict[str, Mesh], quick: bool) -> None:
         ("07_wrist_pitch_roll_bracket.stl", "06_forearm_link_75mm.stl",
          (75.0, 0.0, J4_AXIS_Z_IN_06), "J4", 1),
     ]
-    angles = (0.0,) if quick else (-5.0, -2.5, 0.0, 2.5, 5.0)
     for child_name, parent_name, shift, joint, axis in mates:
         child = meshes.get(child_name)
         parent = meshes.get(parent_name)
@@ -1139,49 +1158,51 @@ def audit_interference(meshes: Dict[str, Mesh], quick: bool) -> None:
             record("clearance", f"{joint} :: meshes present", False,
                    f"{child_name} or {parent_name} missing")
             continue
-        worst_angle = 0.0
-        worst_inside = 0
-        worst_walked = 0
-        worst_at = None
-        # A second, independent instrument: an edge of the child passing through a triangle
-        # of the parent. Point sampling can miss a clash that lives between its samples; a
-        # crossing cannot, because the two surfaces really do intersect.
+        lo, hi = USABLE_TRAVEL_DEG[joint]
+        step = 15.0 if quick else 5.0
+        angles = sorted({0.0, lo, hi} |
+                        {lo - step, hi + step, lo + step, hi - step})
+        if not quick:
+            angles = sorted(set(angles) |
+                            {round(a * step, 4) for a in range(-18, 19)})
+
         parent_cells: Dict[Tuple[int, int, int], List[int]] = {}
         for i, t in enumerate(parent.tris):
-            lo = [min(t[k][m] for k in range(3)) for m in range(3)]
-            hi = [max(t[k][m] for k in range(3)) for m in range(3)]
-            for ix in range(int(math.floor(lo[0] / 4.0)), int(math.floor(hi[0] / 4.0)) + 1):
-                for iy in range(int(math.floor(lo[1] / 4.0)), int(math.floor(hi[1] / 4.0)) + 1):
-                    for iz in range(int(math.floor(lo[2] / 4.0)), int(math.floor(hi[2] / 4.0)) + 1):
+            box = [min(t[k][m] for k in range(3)) for m in range(3)]
+            top = [max(t[k][m] for k in range(3)) for m in range(3)]
+            for ix in range(int(math.floor(box[0] / 4.0)), int(math.floor(top[0] / 4.0)) + 1):
+                for iy in range(int(math.floor(box[1] / 4.0)), int(math.floor(top[1] / 4.0)) + 1):
+                    for iz in range(int(math.floor(box[2] / 4.0)), int(math.floor(top[2] / 4.0)) + 1):
                         parent_cells.setdefault((ix, iy, iz), []).append(i)
 
         def crossings(deg: float):
+            """(edges of the child that pass through the parent, first such point)."""
             th = math.radians(deg)
             c, sn = math.cos(th), math.sin(th)
             seen = set()
             n = 0
             first = None
             for tri in child.tris:
-                pts_r = []
+                pts = []
                 for x, y, z in tri:
-                    if axis == 1:
+                    if axis == 1:                   # rotate about Y through the mate point
                         dx, dz = x, z
                         x, z = c * dx + sn * dz, -sn * dx + c * dz
-                    pts_r.append((x + shift[0], y + shift[1], z + shift[2]))
+                    pts.append((x + shift[0], y + shift[1], z + shift[2]))
                 for k in range(3):
-                    a, b = pts_r[k], pts_r[(k + 1) % 3]
+                    a, b = pts[k], pts[(k + 1) % 3]
                     key = (a, b) if a <= b else (b, a)
                     if key in seen:
                         continue
                     seen.add(key)
-                    lo = [min(a[m], b[m]) for m in range(3)]
-                    hi = [max(a[m], b[m]) for m in range(3)]
-                    for ix in range(int(math.floor(lo[0] / 4.0)),
-                                    int(math.floor(hi[0] / 4.0)) + 1):
-                        for iy in range(int(math.floor(lo[1] / 4.0)),
-                                        int(math.floor(hi[1] / 4.0)) + 1):
-                            for iz in range(int(math.floor(lo[2] / 4.0)),
-                                            int(math.floor(hi[2] / 4.0)) + 1):
+                    box = [min(a[m], b[m]) for m in range(3)]
+                    top = [max(a[m], b[m]) for m in range(3)]
+                    for ix in range(int(math.floor(box[0] / 4.0)),
+                                    int(math.floor(top[0] / 4.0)) + 1):
+                        for iy in range(int(math.floor(box[1] / 4.0)),
+                                        int(math.floor(top[1] / 4.0)) + 1):
+                            for iz in range(int(math.floor(box[2] / 4.0)),
+                                            int(math.floor(top[2] / 4.0)) + 1):
                                 for j in parent_cells.get((ix, iy, iz), ()):
                                     if segment_tri_hit(a, b, parent.tris[j]):
                                         n += 1
@@ -1190,17 +1211,13 @@ def audit_interference(meshes: Dict[str, Mesh], quick: bool) -> None:
                                                      (a[2] + b[2]) / 2.0)
             return n, first
 
-        worst_cross = 0
-        worst_cross_angle = 0.0
-        worst_cross_at = None
-        for deg in angles:
+        def inside_points(deg: float):
+            """(sampled points of the child inside the parent, first such point)."""
             th = math.radians(deg)
             c, sn = math.cos(th), math.sin(th)
             inside = 0
             walked = 0
             first_bad = None
-            # Vertices alone miss a clash that lies in the middle of a big flat face, so every
-            # triangle contributes its 3 corners, its 3 edge midpoints and its centroid.
             for tri in child.tris:
                 ax, ay, az = tri[0]
                 bx, by, bz = tri[1]
@@ -1212,55 +1229,89 @@ def audit_interference(meshes: Dict[str, Mesh], quick: bool) -> None:
                         ((cx + ax) / 2.0, (cy + ay) / 2.0, (cz + az) / 2.0),
                         ((ax + bx + cx) / 3.0, (ay + by + cy) / 3.0, (az + bz + cz) / 3.0)):
                     x, y, z = sx, sy, sz
-                    if axis == 1:                   # rotate about Y through the mate point
+                    if axis == 1:
                         dx, dz = x, z
                         x = c * dx + sn * dz
                         z = -sn * dx + c * dz
                     q = (x + shift[0], y + shift[1], z + shift[2])
                     walked += 1
-                    verdict = inside_robust(parent, q)
-                    if verdict is True:
+                    if inside_robust(parent, q) is True:
                         inside += 1
                         if first_bad is None:
-                            first_bad = (deg, q)
-            if walked > worst_walked:
-                worst_walked = walked
-            if inside > worst_inside or worst_at is None:
-                worst_inside = inside
-                worst_angle = deg
-                worst_at = first_bad
-            n_cross, cross_at = crossings(deg)
-            if n_cross > worst_cross:
-                worst_cross = n_cross
-                worst_cross_angle = deg
-                worst_cross_at = cross_at
-        detail = (f"{worst_inside} of {worst_walked} sampled points of the child sit inside "
-                  f"the parent at {fmt(worst_angle, 1)} deg")
-        if worst_cross:
-            detail += (f" and {worst_cross} child edge(s) pass through the parent's surface at "
-                       f"{fmt(worst_cross_angle, 1)} deg, first at "
-                       f"({fmt(worst_cross_at[0], 1)}, {fmt(worst_cross_at[1], 1)}, "
-                       f"{fmt(worst_cross_at[2], 1)})")
-        if worst_at is not None:
-            detail += (f"; first offender at ({fmt(worst_at[1][0], 1)}, {fmt(worst_at[1][1], 1)}, "
-                       f"{fmt(worst_at[1][2], 1)}) mm in the parent frame")
-        record("clearance", f"{joint} :: child never enters the parent through the travel",
-               worst_inside == 0 and worst_cross == 0, detail)
+                            first_bad = q
+            return inside, walked, first_bad
 
+        worst_in = (0, 0, None)
+        worst_cross = (0, None, None)
+        clashes: Dict[float, Tuple[int, int, object]] = {}
+        for deg in angles:
+            n_cross, cross_at = crossings(deg)
+            inside, walked, bad_at = inside_points(deg)
+            if lo <= deg <= hi:
+                if inside > worst_in[0] or worst_in[1] == 0:
+                    worst_in = (inside, walked, bad_at)
+                if n_cross > worst_cross[0]:
+                    worst_cross = (n_cross, deg, cross_at)
+            elif n_cross or inside:
+                clashes[deg] = (n_cross, inside, cross_at or bad_at)
+        # The stop is the clash CLOSEST to the declared band on each side, not the first one the
+        # loop happens to reach: a shoulder that is clear to -60 deg and fouls at -65 deg has its
+        # stop at -65, whatever else it does at -90.
+        below = [a for a in clashes if a < lo]
+        above = [a for a in clashes if a > hi]
+        stop_angle = clashes[max(below)] + (max(below),) if below else None
+        stop_angle_hi = clashes[min(above)] + (min(above),) if above else None
+        for name, ok, detail in (
+                (f"{joint} :: no material inside the parent over the travel "
+                 f"[{fmt(lo, 0)}..{fmt(hi, 0)} deg]",
+                 worst_in[0] == 0,
+                 f"{worst_in[0]} of {worst_in[1]} sampled points inside"
+                 + (f", first at ({fmt(worst_in[2][0], 1)}, {fmt(worst_in[2][1], 1)}, "
+                    f"{fmt(worst_in[2][2], 1)})" if worst_in[2] else "")),
+                (f"{joint} :: no surface crossing over the travel "
+                 f"[{fmt(lo, 0)}..{fmt(hi, 0)} deg]",
+                 worst_cross[0] == 0,
+                 f"{worst_cross[0]} child edge(s) through the parent"
+                 + (f" at {fmt(worst_cross[1], 1)} deg, first near "
+                    f"({fmt(worst_cross[2][0], 1)}, {fmt(worst_cross[2][1], 1)}, "
+                    f"{fmt(worst_cross[2][2], 1)})" if worst_cross[2] else "")),
+        ):
+            record("clearance", name, ok, detail)
+        def stop_text(stop) -> str:
+            n_cross, inside, at, deg = stop
+            return (f"{fmt(deg, 1)} deg ({n_cross} edge crossing(s), {inside} point(s) inside"
+                    + (f", near ({fmt(at[0], 1)}, {fmt(at[1], 1)}, {fmt(at[2], 1)})"
+                       if at else "") + ")")
+
+        if stop_angle or stop_angle_hi:
+            sides = []
+            if stop_angle:
+                sides.append("on the " + fmt(lo, 0) + " side at " + stop_text(stop_angle))
+            if stop_angle_hi:
+                sides.append("on the " + fmt(hi, 0) + " side at " + stop_text(stop_angle_hi))
+            record("clearance", f"{joint} :: the mechanical stop outside the travel", True,
+                   f"clear through the declared travel; the arm touches " + " and ".join(sides)
+                   + f". The firmware must clamp this joint to {fmt(lo, 0)}..{fmt(hi, 0)} deg.")
+        else:
+            record("clearance", f"{joint} :: the mechanical stop outside the travel", True,
+                   f"no clash anywhere in +-90 deg; the declared travel {fmt(lo, 0)}.."
+                   f"{fmt(hi, 0)} deg is not set by this pair")
 
 
 def audit_claw_interface(meshes: Dict[str, Mesh], quick: bool) -> None:
-    """Measure the J6 claw interface the way the assembly would, from the vertices alone.
+    """Measure the J6 claw mounting the way the assembly would, from the vertices alone.
 
-    08_gripper_body_and_cam_mount carries two pivot sleeves at (J6_AXIS_X_IN_08, +/-11 mm);
-    09_gripper_geared_fingers_pair carries the two hubs that must land on them plus the gear
-    teeth that must reach each other at the centre line. Nothing else in this tool looks at
-    either part, and both facts are pure geometry, so both are measured here:
+    08_gripper_body_and_cam_mount carries the two pivot sleeves at (J6_AXIS_X_IN_08, +/-11);
+    09_gripper_geared_fingers_pair carries the two hubs that must land on them, plus the gear
+    teeth of a 1:1 pair. Nothing else in this tool looks at either part, and both facts are
+    geometry, so both are measured here:
 
-      * the sleeve and hub circles are fitted with the same two-pass `bore_measure` used in
-        section C, at the positions the two builders declare;
-      * the tooth reach is `min|y|` over the claw's vertices - the closest either finger comes
-        to the centre line - because a 1:1 pair only meshes if the two rings touch there.
+      * the sleeve and hub circles are fitted with the two-pass `bore_measure` used in section
+        C, at the positions the two builders declare;
+      * the fingers are separated by their own edge components - a meshing pair is two printed
+        pieces, not one - and each finger's teeth must reach at least half the pivot pitch from
+        its own hub centre, or the two rings never meet at the centre line and the claw cannot
+        close. That reach is `max |y - y_hub|` over the finger's vertices.
     """
     palm = meshes.get("08_gripper_body_and_cam_mount.stl")
     claw = meshes.get("09_gripper_geared_fingers_pair.stl")
@@ -1277,38 +1328,59 @@ def audit_claw_interface(meshes: Dict[str, Mesh], quick: bool) -> None:
         sleeves.append((m[0], m[1]))
     palm_pitch = abs(sleeves[0][0][1] - sleeves[1][0][1])
 
+    # A finger is a hub plus twelve separate teeth plus the finger itself; the slicer fuses
+    # everything that touches, so the split has to be `material_bodies`, not edge components.
+    bodies, _contacts, groups = material_bodies(claw)
+    if len(bodies) != 2:
+        record("placement", "claw :: the two fingers are two printed pieces", False,
+               f"{len(bodies)} printed body(ies) in the claw")
+        return
+    fingers = []
+    for body in bodies:
+        tris_body = [t for gi in body for t in groups[gi]]
+        y_avg = sum(v[1] for t in tris_body for v in t) / (3.0 * len(tris_body))
+        fingers.append((y_avg, tris_body))
+    fingers.sort()
     hubs = []
-    for sy in (-16.0, 16.0):
-        m = bore_measure(claw, "Z", (0.0, sy, 0.0), (-0.5, 6.5), 3.05)
+    for y_avg, body in fingers:
+        ys = [v[1] for t in body for v in t]
+        centre_y = (min(ys) + max(ys)) / 2.0
+        m = bore_measure(claw, "Z", (0.0, centre_y, 0.0), (-0.5, 6.5), 4.3)
         if m is None:
-            record("placement", "claw :: the finger hubs are round, measurable bores", False,
-                   f"no hub bore found at y = {sy}")
+            record("placement", "claw :: each finger carries a hub bore", False,
+                   f"no circular hub bore near y = {fmt(centre_y, 1)} mm")
             return
-        hubs.append((m[0], m[1]))
-    claw_pitch = abs(hubs[0][0][1] - hubs[1][0][1])
+        hubs.append((m[0][1], m[1], body))       # (centre y, bore diameter, triangles)
+    claw_pitch = abs(hubs[1][0] - hubs[0][0])         # hubs[i] = (centre y, bore dia, tris)
 
     record("placement", "claw :: finger hubs land on the palm's pivot sleeves",
            abs(palm_pitch - claw_pitch) <= 0.40,
            f"the palm's sleeves are {fmt(palm_pitch, 2)} mm apart (declared y = "
-           f"{fmt(J6_LEFT_Y, 1)} / {fmt(J6_RIGHT_Y, 1)}), the claw's hubs are "
-           f"{fmt(claw_pitch, 2)} mm apart (hard-coded y = -16.0 / 16.0) - "
-           f"{fmt(abs(claw_pitch - palm_pitch), 2)} mm of mismatch, and no single translation "
-           f"mates the pair")
+           f"{fmt(J6_LEFT_Y, 1)} / {fmt(J6_RIGHT_Y, 1)}), the claw's hubs measure "
+           f"{fmt(claw_pitch, 2)} mm apart (at y = {fmt(hubs[0][0], 2)} / "
+           f"{fmt(hubs[1][0], 2)}) - {fmt(abs(claw_pitch - palm_pitch), 2)} mm of mismatch")
     for i in range(2):
         record("placement", f"claw :: finger hub {i + 1} slides over its sleeve",
                hubs[i][1] >= sleeves[i][1] + 0.40,
                f"palm sleeve OD {fmt(sleeves[i][1], 2)} mm vs finger hub bore "
-               f"{fmt(hubs[i][1], 2)} mm ({fmt(hubs[i][1] - sleeves[i][1], 2)} mm: the hub "
-               f"cannot go on at any pitch)")
+               f"{fmt(hubs[i][1], 2)} mm ({fmt(hubs[i][1] - sleeves[i][1], 2)} mm)")
 
-    centre_gap = 2.0 * min(abs(v[1]) for v in claw.verts)
-    record("placement", "claw :: the two tooth rings reach each other at the centre line",
-           centre_gap <= 0.60,
-           f"the fingers stay {fmt(centre_gap, 2)} mm apart on the centre line "
-           f"({fmt(centre_gap / 2.0, 2)} mm short per finger); at a {fmt(claw_pitch, 1)} mm "
-           f"pivot pitch a 1:1 pair needs its teeth out to r = {fmt(claw_pitch / 2.0, 2)} mm, "
-           f"and build_09 draws them at r = 9.0 mm (the same docstring advertises a 22 mm "
-           f"pitch circle, i.e. r = 11.0)")
+    reaches = []
+    for (y_hub, bore, body) in hubs:
+        reaches.append(max(abs(v[1] - y_hub) for t in body for v in t))
+    need = claw_pitch / 2.0
+    for i, reach in enumerate(reaches):
+        record("placement", f"claw :: finger {i + 1} teeth reach the centre line",
+               reach >= need,
+               f"the teeth of finger {i + 1} reach {fmt(reach, 2)} mm from their own hub "
+               f"centre; a 1:1 pair at a {fmt(claw_pitch, 1)} mm pitch needs {fmt(need, 2)} mm")
+    left = [t for gi in bodies[0] for t in groups[gi]]
+    right = [t for gi in bodies[1] for t in groups[gi]]
+    kind, gap = sets_relation(left, right, distance=True)
+    record("placement", "claw :: the two fingers mesh without interfering",
+           kind != "cross" and kind != "inside" and gap >= 0.20,
+           f"the two finger solids are {kind}, closest approach {fmt(gap, 2)} mm apart "
+           f"(a 1:1 pair interleaves with the tooth space minus one tooth of clearance)")
 
 
 # =============================================================================

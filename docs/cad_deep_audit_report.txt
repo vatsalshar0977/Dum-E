@@ -1,6 +1,3 @@
-# Deep CAD audit - every number measured from the STL bytes in cad/stl/
-# Regenerate:  python3 src/phase2_mechanical/deep_cad_audit.py --out docs/cad_deep_audit_report.txt
-# Full sweep (all joint angles).  Exit status 1 means "findings", not "crash".
 
 ======================================================================================================================
   TOPOLOGY
@@ -18,7 +15,7 @@
   ok   00_tolerance_test_coupon.stl :: prints as 1 piece(s), not more
        1 printed piece(s) from 5 edge-disjoint solid(s); 4 cross, 1 touch, tightest 0 um
   ok   00_tolerance_test_coupon.stl :: what the slicer gets
-         18379 mm3 [-42..42, -20..20, 0..13]
+         18408 mm3 [-42..42, -20..20, 0..13]
   ok   01_desk_c_clamp_frame.stl :: surface is closed (no naked edges)
        0 naked, 492 manifold, 36 non-manifold of 528 edges
   ok   01_desk_c_clamp_frame.stl :: no degenerate triangles
@@ -60,23 +57,23 @@
   ok   03_base_lower_slewing_ring.stl :: prints as 1 piece(s), not more
        1 printed piece(s) from 6 edge-disjoint solid(s); 7 cross, tightest 0 um
   ok   03_base_lower_slewing_ring.stl :: what the slicer gets
-        114155 mm3 [-46..74, -46..46, 0..42]
+        114344 mm3 [-46..74, -46..46, 0..42]
   ok   04_base_upper_turret_j2.stl :: surface is closed (no naked edges)
-       0 naked, 1588 manifold, 64 non-manifold of 1652 edges
+       0 naked, 1606 manifold, 64 non-manifold of 1670 edges
   ok   04_base_upper_turret_j2.stl :: no degenerate triangles
        0 found
   ok   04_base_upper_turret_j2.stl :: duplicate faces are absent
        0 duplicated
   ok   04_base_upper_turret_j2.stl :: every body is positively wound
-       0 of 6 bodies inverted or flat
+       0 of 7 bodies inverted or flat
   ok   04_base_upper_turret_j2.stl :: no dust bodies
        0 slivers under 0.5 mm2
-  FAIL 04_base_upper_turret_j2.stl :: prints as 1 piece(s), not more
-       2 printed piece(s) from 6 edge-disjoint solid(s); 6 cross, tightest 0 um
+  ok   04_base_upper_turret_j2.stl :: prints as 1 piece(s), not more
+       1 printed piece(s) from 7 edge-disjoint solid(s); 8 cross, tightest 0 um
   ok   04_base_upper_turret_j2.stl :: what the slicer gets
-         48237 mm3 [-36..36, -41..36, 0..46] |    1055 mm3 [-38..-30, -39..-31, 8..24]
+         49604 mm3 [-38..36, -41..36, 0..46]
   ok   05_upper_arm_link_80mm.stl :: surface is closed (no naked edges)
-       0 naked, 1886 manifold, 128 non-manifold of 2014 edges
+       0 naked, 1902 manifold, 129 non-manifold of 2031 edges
   ok   05_upper_arm_link_80mm.stl :: no degenerate triangles
        0 found
   ok   05_upper_arm_link_80mm.stl :: duplicate faces are absent
@@ -85,10 +82,10 @@
        0 of 8 bodies inverted or flat
   ok   05_upper_arm_link_80mm.stl :: no dust bodies
        0 slivers under 0.5 mm2
-  FAIL 05_upper_arm_link_80mm.stl :: prints as 1 piece(s), not more
-       4 printed piece(s) from 8 edge-disjoint solid(s); 6 cross, tightest 0 um
+  ok   05_upper_arm_link_80mm.stl :: prints as 1 piece(s), not more
+       1 printed piece(s) from 8 edge-disjoint solid(s); 11 cross, tightest 0 um
   ok   05_upper_arm_link_80mm.stl :: what the slicer gets
-         14471 mm3 [-16..96, -22..22, -8..23] |   14095 mm3 [56..96, -39..3, -8..23] |    8678 mm3 [-16..96, -44..-41, -8..23] |     757 mm3 [-32..-24, -4..4, 18..26]
+         30016 mm3 [-30..96, -44..6, -8..26]
   ok   06_forearm_link_75mm.stl :: surface is closed (no naked edges)
        0 naked, 1626 manifold, 128 non-manifold of 1754 edges
   ok   06_forearm_link_75mm.stl :: no degenerate triangles
@@ -99,24 +96,24 @@
        0 of 9 bodies inverted or flat
   ok   06_forearm_link_75mm.stl :: no dust bodies
        0 slivers under 0.5 mm2
-  FAIL 06_forearm_link_75mm.stl :: prints as 1 piece(s), not more
-       4 printed piece(s) from 9 edge-disjoint solid(s); 7 cross, tightest 0 um
+  ok   06_forearm_link_75mm.stl :: prints as 1 piece(s), not more
+       1 printed piece(s) from 9 edge-disjoint solid(s); 16 cross, tightest 0 um
   ok   06_forearm_link_75mm.stl :: what the slicer gets
-         11353 mm3 [-27..88, -21..21, -8..19] |    9048 mm3 [52..88, -26..3, -8..15] |    5852 mm3 [-14..88, -42..-39, -8..15] |    1392 mm3 [42..48, -26..3, -7..1]
+         22887 mm3 [-14..88, -42..6, -8..15]
   ok   07_wrist_pitch_roll_bracket.stl :: surface is closed (no naked edges)
-       0 naked, 1248 manifold, 102 non-manifold of 1350 edges
+       0 naked, 1316 manifold, 104 non-manifold of 1420 edges
   ok   07_wrist_pitch_roll_bracket.stl :: no degenerate triangles
        0 found
   ok   07_wrist_pitch_roll_bracket.stl :: duplicate faces are absent
        0 duplicated
   ok   07_wrist_pitch_roll_bracket.stl :: every body is positively wound
-       0 of 5 bodies inverted or flat
+       0 of 7 bodies inverted or flat
   ok   07_wrist_pitch_roll_bracket.stl :: no dust bodies
        0 slivers under 0.5 mm2
-  FAIL 07_wrist_pitch_roll_bracket.stl :: prints as 1 piece(s), not more
-       2 printed piece(s) from 5 edge-disjoint solid(s); 5 cross, tightest 0 um
+  ok   07_wrist_pitch_roll_bracket.stl :: prints as 1 piece(s), not more
+       1 printed piece(s) from 7 edge-disjoint solid(s); 12 cross, tightest 0 um
   ok   07_wrist_pitch_roll_bracket.stl :: what the slicer gets
-         12112 mm3 [-12..26, -15..15, -8..32] |    3740 mm3 [-12..26, -29..-26, -8..32]
+         16831 mm3 [-12..26, -29..14, -8..40]
   ok   08_gripper_body_and_cam_mount.stl :: surface is closed (no naked edges)
        0 naked, 1426 manifold, 68 non-manifold of 1494 edges
   ok   08_gripper_body_and_cam_mount.stl :: no degenerate triangles
@@ -130,7 +127,7 @@
   ok   08_gripper_body_and_cam_mount.stl :: prints as 1 piece(s), not more
        1 printed piece(s) from 6 edge-disjoint solid(s); 6 cross, tightest 0 um
   ok   08_gripper_body_and_cam_mount.stl :: what the slicer gets
-         33875 mm3 [-18..26, -21..21, -4..41]
+         33940 mm3 [-18..26, -21..21, -4..41]
   ok   09_gripper_geared_fingers_pair.stl :: surface is closed (no naked edges)
        0 naked, 1080 manifold, 0 non-manifold of 1080 edges
   ok   09_gripper_geared_fingers_pair.stl :: no degenerate triangles
@@ -142,9 +139,9 @@
   ok   09_gripper_geared_fingers_pair.stl :: no dust bodies
        0 slivers under 0.5 mm2
   ok   09_gripper_geared_fingers_pair.stl :: prints as 2 piece(s), not more
-       2 printed piece(s) from 30 edge-disjoint solid(s); 30 cross, 1 inside, tightest 0 um
+       2 printed piece(s) from 30 edge-disjoint solid(s); 29 cross, 2 inside, tightest 0 um
   ok   09_gripper_geared_fingers_pair.stl :: what the slicer gets
-          4650 mm3 [-11..46, -27..-5, 0..6] |    4650 mm3 [-11..46, 5..27, 0..6]
+          3444 mm3 [-13..46, -24..2, 0..6] |    3444 mm3 [-13..46, -2..24, 0..6]
   ok   10_cable_clips_and_electronics_tray.stl :: surface is closed (no naked edges)
        0 naked, 2120 manifold, 5 non-manifold of 2125 edges
   ok   10_cable_clips_and_electronics_tray.stl :: no degenerate triangles
@@ -156,9 +153,9 @@
   ok   10_cable_clips_and_electronics_tray.stl :: no dust bodies
        0 slivers under 0.5 mm2
   ok   10_cable_clips_and_electronics_tray.stl :: prints as 1 piece(s), not more
-       1 printed piece(s) from 15 edge-disjoint solid(s); 14 cross, tightest 0 um
+       1 printed piece(s) from 15 edge-disjoint solid(s); 16 cross, tightest 0 um
   ok   10_cable_clips_and_electronics_tray.stl :: what the slicer gets
-         16182 mm3 [-34..34, -26..39, 0..8]
+         19926 mm3 [-36..36, -32..46, 0..8]
   ok   11_mobile_rover_chassis.stl :: surface is closed (no naked edges)
        0 naked, 2500 manifold, 178 non-manifold of 2678 edges
   ok   11_mobile_rover_chassis.stl :: no degenerate triangles
@@ -183,10 +180,10 @@
        0 of 22 bodies inverted or flat
   ok   12_drive_wheels_and_caster.stl :: no dust bodies
        0 slivers under 0.5 mm2
-  FAIL 12_drive_wheels_and_caster.stl :: prints as 3 piece(s), not more
-       11 printed piece(s) from 22 edge-disjoint solid(s); 12 cross, 3 inside, tightest 0 um
+  ok   12_drive_wheels_and_caster.stl :: prints as 3 piece(s), not more
+       3 printed piece(s) from 22 edge-disjoint solid(s); 28 cross, 3 inside, tightest 0 um
   ok   12_drive_wheels_and_caster.stl :: what the slicer gets
-          7088 mm3 [-24..24, 6..54, 22..26] |    7088 mm3 [-24..24, -54..-6, 22..26] |    4700 mm3 [-13..13, -13..13, 0..14] |     135 mm3 [2..11, 40..43, 22..26] |     135 mm3 [2..11, 17..20, 22..26] |     135 mm3 [2..11, -43..-40, 22..26] |     135 mm3 [2..11, -20..-17, 22..26] |     135 mm3 [-11..-2, 40..43, 22..26] |     135 mm3 [-11..-2, 17..20, 22..26] |     135 mm3 [-11..-2, -43..-40, 22..26] |     135 mm3 [-11..-2, -20..-17, 22..26]
+          8073 mm3 [-24..24, 6..54, 22..26] |    8073 mm3 [-24..24, -54..-6, 22..26] |    4700 mm3 [-13..13, -13..13, 0..14]
 
 ======================================================================================================================
   SIZING
@@ -194,13 +191,13 @@
   ok   00_tolerance_test_coupon.stl :: fits the 180 mm bed
        max dimension 84.0 mm
   ok   00_tolerance_test_coupon.stl :: solid volume is sane
-       18126.6 mm3 = 22.5 g PLA (declared 8 g, +14.5 g)
+       18167.3 mm3 = 22.5 g PLA (declared 8 g, +14.5 g)
   ok   00_tolerance_test_coupon.stl :: sits flat enough to print without a raft
-       first 0.5 mm slice covers 3327.4 mm2
+       first 0.5 mm slice covers 3330.5 mm2
   ok   00_tolerance_test_coupon.stl :: overhang area is printable in the declared orientation
-       0.0% needs support (flipped 180 deg; as-modelled 3.8%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
+       0.0% needs support (flipped 180 deg; as-modelled 3.9%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   00_tolerance_test_coupon.stl :: centre of mass is inside the footprint
-       CoM (-1.9, -0.1, 7.4) mm, 57% up the part
+       CoM (-1.0, -0.0, 3.7) mm, 29% up the part
   ok   01_desk_c_clamp_frame.stl :: fits the 180 mm bed
        max dimension 80.0 mm
   ok   01_desk_c_clamp_frame.stl :: solid volume is sane
@@ -210,7 +207,7 @@
   ok   01_desk_c_clamp_frame.stl :: overhang area is printable in the declared orientation
        0.0% needs support (as modelled; as-modelled 0.0%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   01_desk_c_clamp_frame.stl :: centre of mass is inside the footprint
-       CoM (-10.0, 3.8, 18.0) mm, 100% up the part
+       CoM (-5.0, 1.9, 9.0) mm, 50% up the part
   ok   02_desk_c_clamp_screw_and_pad.stl :: fits the 180 mm bed
        max dimension 61.0 mm
   ok   02_desk_c_clamp_screw_and_pad.stl :: solid volume is sane
@@ -220,87 +217,87 @@
   ok   02_desk_c_clamp_screw_and_pad.stl :: overhang area is printable in the declared orientation
        0.0% needs support (as modelled; as-modelled 0.0%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   02_desk_c_clamp_screw_and_pad.stl :: centre of mass is inside the footprint
-       CoM (15.4, -0.0, 29.2) mm, 49% up the part
+       CoM (7.7, -0.0, 14.6) mm, 24% up the part
   ok   03_base_lower_slewing_ring.stl :: fits the 180 mm bed
        max dimension 120.0 mm
   ok   03_base_lower_slewing_ring.stl :: solid volume is sane
-       110077.4 mm3 = 136.5 g PLA (declared 140 g, -3.5 g)
+       109209.6 mm3 = 135.4 g PLA (declared 140 g, -4.6 g)
   ok   03_base_lower_slewing_ring.stl :: sits flat enough to print without a raft
        first 0.5 mm slice covers 8342.1 mm2
   ok   03_base_lower_slewing_ring.stl :: overhang area is printable in the declared orientation
-       0.0% needs support (flipped 180 deg; as-modelled 15.3%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
+       0.0% needs support (flipped 180 deg; as-modelled 15.2%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   03_base_lower_slewing_ring.stl :: centre of mass is inside the footprint
-       CoM (12.2, 0.1, 38.4) mm, 92% up the part
+       CoM (6.0, -0.0, 19.2) mm, 46% up the part
   ok   04_base_upper_turret_j2.stl :: fits the 180 mm bed
        max dimension 77.0 mm
   ok   04_base_upper_turret_j2.stl :: solid volume is sane
-       46980.4 mm3 = 58.3 g PLA (declared 56 g, +2.3 g)
+       47254.1 mm3 = 58.6 g PLA (declared 56 g, +2.6 g)
   ok   04_base_upper_turret_j2.stl :: sits flat enough to print without a raft
        first 0.5 mm slice covers 3860.2 mm2
   ok   04_base_upper_turret_j2.stl :: overhang area is printable in the declared orientation
-       0.0% needs support (flipped 180 deg; as-modelled 11.4%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
+       0.0% needs support (flipped 180 deg; as-modelled 11.5%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   04_base_upper_turret_j2.stl :: centre of mass is inside the footprint
-       CoM (0.0, -13.4, 22.1) mm, 48% up the part
+       CoM (-0.1, -6.9, 11.1) mm, 24% up the part
   ok   05_upper_arm_link_80mm.stl :: fits the 180 mm bed
-       max dimension 127.5 mm
+       max dimension 126.5 mm
   ok   05_upper_arm_link_80mm.stl :: solid volume is sane
-       34136.0 mm3 = 42.3 g PLA (declared 46 g, -3.7 g)
+       25777.8 mm3 = 32.0 g PLA (declared 46 g, -14.0 g)
   ok   05_upper_arm_link_80mm.stl :: sits flat enough to print without a raft
-       first 0.5 mm slice covers 775.3 mm2
+       first 0.5 mm slice covers 880.9 mm2
   ok   05_upper_arm_link_80mm.stl :: overhang area is printable in the declared orientation
-       8.9% needs support (flipped 180 deg; as-modelled 14.0%, flipped 8.9%). Multi-body files can also be split in the slicer and each body laid flat.
+       11.0% needs support (flipped 180 deg; as-modelled 12.2%, flipped 11.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   05_upper_arm_link_80mm.stl :: centre of mass is inside the footprint
-       CoM (94.5, -32.0, 17.8) mm, 52% up the part
+       CoM (50.3, -18.4, 6.3) mm, 19% up the part
   ok   06_forearm_link_75mm.stl :: fits the 180 mm bed
-       max dimension 115.0 mm
+       max dimension 102.0 mm
   ok   06_forearm_link_75mm.stl :: solid volume is sane
-       25277.7 mm3 = 31.3 g PLA (declared 33 g, -1.7 g)
+       17073.8 mm3 = 21.2 g PLA (declared 33 g, -11.8 g)
   ok   06_forearm_link_75mm.stl :: sits flat enough to print without a raft
-       first 0.5 mm slice covers 703.5 mm2
+       first 0.5 mm slice covers 801.3 mm2
   ok   06_forearm_link_75mm.stl :: overhang area is printable in the declared orientation
-       10.0% needs support (flipped 180 deg; as-modelled 15.5%, flipped 10.0%). Multi-body files can also be split in the slicer and each body laid flat.
+       13.0% needs support (flipped 180 deg; as-modelled 13.3%, flipped 13.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   06_forearm_link_75mm.stl :: centre of mass is inside the footprint
-       CoM (73.1, -24.5, 11.3) mm, 42% up the part
+       CoM (46.2, -15.7, 2.1) mm, 9% up the part
   ok   07_wrist_pitch_roll_bracket.stl :: fits the 180 mm bed
-       max dimension 43.6 mm
+       max dimension 47.5 mm
   ok   07_wrist_pitch_roll_bracket.stl :: solid volume is sane
-       14030.4 mm3 = 17.4 g PLA (declared 21 g, -3.6 g)
+       14339.7 mm3 = 17.8 g PLA (declared 21 g, -3.2 g)
   ok   07_wrist_pitch_roll_bracket.stl :: sits flat enough to print without a raft
-       first 0.5 mm slice covers 188.3 mm2
+       first 0.5 mm slice covers 208.0 mm2
   ok   07_wrist_pitch_roll_bracket.stl :: overhang area is printable in the declared orientation
-       5.8% needs support (flipped 180 deg; as-modelled 11.7%, flipped 5.8%). Multi-body files can also be split in the slicer and each body laid flat.
+       3.0% needs support (flipped 180 deg; as-modelled 11.9%, flipped 3.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   07_wrist_pitch_roll_bracket.stl :: centre of mass is inside the footprint
-       CoM (13.1, -12.8, 30.6) mm, 77% up the part
+       CoM (8.7, -7.9, 19.7) mm, 41% up the part
   ok   08_gripper_body_and_cam_mount.stl :: fits the 180 mm bed
        max dimension 45.0 mm
   ok   08_gripper_body_and_cam_mount.stl :: solid volume is sane
-       30656.9 mm3 = 38.0 g PLA (declared 40 g, -2.0 g)
+       30676.7 mm3 = 38.0 g PLA (declared 40 g, -2.0 g)
   ok   08_gripper_body_and_cam_mount.stl :: sits flat enough to print without a raft
        first 0.5 mm slice covers 1512.0 mm2
   ok   08_gripper_body_and_cam_mount.stl :: overhang area is printable in the declared orientation
-       0.0% needs support (flipped 180 deg; as-modelled 12.7%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
+       0.0% needs support (flipped 180 deg; as-modelled 12.6%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   08_gripper_body_and_cam_mount.stl :: centre of mass is inside the footprint
-       CoM (-2.0, -0.1, 23.8) mm, 53% up the part
+       CoM (-1.0, -0.0, 11.8) mm, 26% up the part
   ok   09_gripper_geared_fingers_pair.stl :: fits the 180 mm bed
-       max dimension 57.2 mm
+       max dimension 59.0 mm
   ok   09_gripper_geared_fingers_pair.stl :: solid volume is sane
-       5406.0 mm3 = 6.7 g PLA (declared 9 g, -2.3 g)
+       5641.7 mm3 = 7.0 g PLA (declared 9 g, -2.0 g)
   ok   09_gripper_geared_fingers_pair.stl :: sits flat enough to print without a raft
-       first 0.5 mm slice covers 901.0 mm2
+       first 0.5 mm slice covers 940.3 mm2
   ok   09_gripper_geared_fingers_pair.stl :: overhang area is printable in the declared orientation
        0.0% needs support (as modelled; as-modelled 0.0%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   09_gripper_geared_fingers_pair.stl :: centre of mass is inside the footprint
-       CoM (30.7, -0.6, 6.0) mm, 100% up the part
+       CoM (14.4, -0.0, 3.0) mm, 50% up the part
   ok   10_cable_clips_and_electronics_tray.stl :: fits the 180 mm bed
-       max dimension 68.0 mm
+       max dimension 78.0 mm
   ok   10_cable_clips_and_electronics_tray.stl :: solid volume is sane
-       12968.7 mm3 = 16.1 g PLA (declared 17 g, -0.9 g)
+       16492.5 mm3 = 20.5 g PLA (declared 17 g, +3.5 g)
   ok   10_cable_clips_and_electronics_tray.stl :: sits flat enough to print without a raft
-       first 0.5 mm slice covers 3402.1 mm2
+       first 0.5 mm slice covers 4408.6 mm2
   ok   10_cable_clips_and_electronics_tray.stl :: overhang area is printable in the declared orientation
-       0.0% needs support (flipped 180 deg; as-modelled 0.7%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
+       0.0% needs support (flipped 180 deg; as-modelled 0.6%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   10_cable_clips_and_electronics_tray.stl :: centre of mass is inside the footprint
-       CoM (-0.0, 8.7, 4.5) mm, 56% up the part
+       CoM (-0.0, 4.0, 2.2) mm, 27% up the part
   ok   11_mobile_rover_chassis.stl :: fits the 180 mm bed
        max dimension 146.0 mm
   ok   11_mobile_rover_chassis.stl :: solid volume is sane
@@ -310,17 +307,17 @@
   ok   11_mobile_rover_chassis.stl :: overhang area is printable in the declared orientation
        0.0% needs support (flipped 180 deg; as-modelled 24.9%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   11_mobile_rover_chassis.stl :: centre of mass is inside the footprint
-       CoM (15.9, 6.9, 35.1) mm, 140% up the part
+       CoM (8.0, 3.5, 17.5) mm, 70% up the part
   ok   12_drive_wheels_and_caster.stl :: fits the 180 mm bed
        max dimension 108.0 mm
   ok   12_drive_wheels_and_caster.stl :: solid volume is sane
-       12283.2 mm3 = 15.2 g PLA (declared 19 g, -3.8 g)
+       11813.1 mm3 = 14.6 g PLA (declared 19 g, -4.4 g)
   ok   12_drive_wheels_and_caster.stl :: sits flat enough to print without a raft
        first 0.5 mm slice covers 184.6 mm2
   ok   12_drive_wheels_and_caster.stl :: overhang area is printable in the declared orientation
-       0.0% needs support (flipped 180 deg; as-modelled 30.0%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
+       0.0% needs support (flipped 180 deg; as-modelled 29.5%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   12_drive_wheels_and_caster.stl :: centre of mass is inside the footprint
-       CoM (0.0, 0.0, 37.3) mm, 141% up the part
+       CoM (0.0, 0.0, 18.4) mm, 70% up the part
 
 ======================================================================================================================
   FITS
@@ -334,13 +331,13 @@
   ok   M3 clearance, chassis deck, 45 deg :: assembles at worst-case print error
        ok: measured 3.476 mm, nominal part 3.0 +/-0.05, so bore 3.18 vs part 3.05 = margin 0.13 mm (nominal slack 0.48 mm) - M3 bolt through the chassis deck
   ok   passive pin bore, upper arm :: measurable and isolated
-       circular feature, two-pass diameter agreement 0.0367 mm over 128 vertices (fit residual 0.0312 mm)
-  FAIL passive pin bore, upper arm :: assembles at worst-case print error
-       FAIL: measured 6.417 mm, nominal part 6.0 +/-0.30, so bore 6.12 vs part 6.30 = margin -0.18 mm (nominal slack 0.42 mm) - 6 mm PRINTED pivot pin (so this fit is print-on-print)
+       circular feature, two-pass diameter agreement 0.0384 mm over 128 vertices (fit residual 0.0327 mm)
+  ok   passive pin bore, upper arm :: assembles at worst-case print error
+       ok: measured 6.723 mm, nominal part 6.0 +/-0.30, so bore 6.42 vs part 6.30 = margin 0.12 mm (nominal slack 0.72 mm) - 6 mm PRINTED pivot pin (so this fit is print-on-print)
   ok   passive pin bore, forearm :: measurable and isolated
-       circular feature, two-pass diameter agreement 0.0319 mm over 64 vertices (fit residual 0.0000 mm)
-  FAIL passive pin bore, forearm :: assembles at worst-case print error
-       FAIL: measured 6.536 mm, nominal part 6.0 +/-0.30, so bore 6.24 vs part 6.30 = margin -0.06 mm (nominal slack 0.54 mm) - 6 mm PRINTED pivot pin
+       circular feature, two-pass diameter agreement 0.0334 mm over 64 vertices (fit residual 0.0000 mm)
+  ok   passive pin bore, forearm :: assembles at worst-case print error
+       ok: measured 6.847 mm, nominal part 6.0 +/-0.30, so bore 6.55 vs part 6.30 = margin 0.25 mm (nominal slack 0.85 mm) - 6 mm PRINTED pivot pin
   ok   MG996R horn bore, turret J2 :: measurable and isolated
        circular feature, two-pass diameter agreement 0.0728 mm over 128 vertices (fit residual 0.0619 mm)
   ok   MG996R horn bore, turret J2 :: assembles at worst-case print error
@@ -359,12 +356,12 @@
        ok: measured 12.800 mm, nominal part 12.0 +/-0.10, so bore 12.50 vs part 12.10 = margin 0.40 mm (nominal slack 0.80 mm) - 12 mm ball sits in this cup
   ok   wheel hub bore, left :: measurable and isolated
        circular feature, two-pass diameter agreement 0.0000 mm over 672 vertices (fit residual 0.0247 mm)
-  FAIL wheel hub bore, left :: assembles at worst-case print error
-       FAIL: measured 4.957 mm, nominal part 4.9 +/-0.10, so bore 4.66 vs part 5.00 = margin -0.34 mm (nominal slack 0.06 mm) - servo shaft / horn boss through the wheel
+  ok   wheel hub bore, left :: assembles at worst-case print error
+       ok: measured 5.457 mm, nominal part 4.9 +/-0.10, so bore 5.16 vs part 5.00 = margin 0.16 mm (nominal slack 0.56 mm) - servo shaft / horn boss through the wheel
   ok   wheel hub bore, right :: measurable and isolated
        circular feature, two-pass diameter agreement 0.0000 mm over 672 vertices (fit residual 0.0247 mm)
-  FAIL wheel hub bore, right :: assembles at worst-case print error
-       FAIL: measured 4.957 mm, nominal part 4.9 +/-0.10, so bore 4.66 vs part 5.00 = margin -0.34 mm (nominal slack 0.06 mm) - servo shaft / horn boss through the wheel
+  ok   wheel hub bore, right :: assembles at worst-case print error
+       ok: measured 5.457 mm, nominal part 4.9 +/-0.10, so bore 5.16 vs part 5.00 = margin 0.16 mm (nominal slack 0.56 mm) - servo shaft / horn boss through the wheel
   ok   tray standoff pilot hole :: measurable and isolated
        circular feature, two-pass diameter agreement 0.0000 mm over 192 vertices (fit residual 0.0000 mm)
   ok   tray standoff pilot hole :: assembles at worst-case print error
@@ -382,15 +379,15 @@
   PLACEMENT
 ======================================================================================================================
   ok   J1 MG996R in the base tower :: case 40.7 mm fits along X
-       free 20.6 mm down / 20.6 mm up; case needs 40.7 mm (slack 0.50 mm)
+       free 20.8 mm down / 20.8 mm up; case needs 40.7 mm (slack 0.90 mm)
   ok   J1 MG996R in the base tower :: case 20.0 mm fits along Y
-       free 10.2 mm down / 10.2 mm up; case needs 20.0 mm (slack 0.50 mm)
+       free 10.4 mm down / 10.4 mm up; case needs 20.0 mm (slack 0.90 mm)
   ok   J1 MG996R in the base tower :: case 35.5 mm fits along Z
        free 19.2 mm down / open up; case needs 35.5 mm (slack 203.75 mm)
-  FAIL J1 MG996R in the base tower :: case still fits at worst-case print error
-       tightest axis Y keeps -0.10 mm after 2 x 0.15 mm of growth
+  ok   J1 MG996R in the base tower :: case still fits at worst-case print error
+       tightest axis X keeps 0.30 mm after 2 x 0.15 mm of growth
   ok   J2 MG996R in the turret :: case 40.7 mm fits along X
-       free open down / 20.6 mm up; case needs 40.7 mm (slack 199.90 mm)
+       free open down / 20.8 mm up; case needs 40.7 mm (slack 200.10 mm)
   ok   J2 MG996R in the turret :: case 35.5 mm fits along Y
        free 17.8 mm down / 20.8 mm up; case needs 35.5 mm (slack 3.00 mm)
   ok   J2 MG996R in the turret :: case 20.0 mm fits along Z
@@ -398,7 +395,7 @@
   ok   J2 MG996R in the turret :: case still fits at worst-case print error
        tightest axis Y keeps 2.40 mm after 2 x 0.15 mm of growth
   ok   J3 MG996R in the upper arm :: case 40.7 mm fits along X
-       free open down / 20.6 mm up; case needs 40.7 mm (slack 199.90 mm)
+       free open down / 20.8 mm up; case needs 40.7 mm (slack 200.10 mm)
   ok   J3 MG996R in the upper arm :: case 35.5 mm fits along Y
        free 19.8 mm down / 16.8 mm up; case needs 35.5 mm (slack 1.00 mm)
   ok   J3 MG996R in the upper arm :: case 20.0 mm fits along Z
@@ -406,21 +403,21 @@
   ok   J3 MG996R in the upper arm :: case still fits at worst-case print error
        tightest axis Y keeps 0.40 mm after 2 x 0.15 mm of growth
   ok   J4 MG90S in the forearm :: case 22.8 mm fits along X
-       free 11.7 mm down / 11.7 mm up; case needs 22.8 mm (slack 0.50 mm)
+       free 11.9 mm down / 11.8 mm up; case needs 22.8 mm (slack 0.90 mm)
   ok   J4 MG90S in the forearm :: case 22.5 mm fits along Y
        free 12.2 mm down / 11.2 mm up; case needs 22.5 mm (slack 1.00 mm)
   ok   J4 MG90S in the forearm :: case 12.2 mm fits along Z
        free 11.1 mm down / open up; case needs 12.2 mm (slack 218.90 mm)
-  FAIL J4 MG90S in the forearm :: case still fits at worst-case print error
-       tightest axis X keeps -0.10 mm after 2 x 0.15 mm of growth
+  ok   J4 MG90S in the forearm :: case still fits at worst-case print error
+       tightest axis X keeps 0.30 mm after 2 x 0.15 mm of growth
   ok   J5 MG90S in the wrist :: case 22.8 mm fits along X
-       free 11.7 mm down / 11.6 mm up; case needs 22.8 mm (slack 0.50 mm)
-  FAIL J5 MG90S in the wrist :: case 12.2 mm fits along Y
-       free 6.3 mm down / 3.3 mm up; case needs 12.2 mm (slack -2.55 mm)
+       free open down / 11.8 mm up; case needs 22.8 mm (slack 209.05 mm)
+  ok   J5 MG90S in the wrist :: case 12.2 mm fits along Y
+       free 6.6 mm down / 6.6 mm up; case needs 12.2 mm (slack 0.90 mm)
   ok   J5 MG90S in the wrist :: case 22.5 mm fits along Z
-       free 10.0 mm down / 13.0 mm up; case needs 22.5 mm (slack 0.50 mm)
-  FAIL J5 MG90S in the wrist :: case still fits at worst-case print error
-       tightest axis Y keeps -3.15 mm after 2 x 0.15 mm of growth
+       free open down / 21.0 mm up; case needs 22.5 mm (slack 218.50 mm)
+  ok   J5 MG90S in the wrist :: case still fits at worst-case print error
+       tightest axis Y keeps 0.30 mm after 2 x 0.15 mm of growth
   ok   rover :: chassis height matches the declared deck
        measured 25.0 mm vs declared 25 mm; ground gap 12 mm puts the axle at z 12.0 mm, so a 12.2 mm servo body tops out at 18.1 mm against a deck underside at 20.0 mm
   ok   rover :: left drive servo pocket holds the servo
@@ -428,61 +425,60 @@
   ok   rover :: right drive servo pocket holds the servo
        free/case mm: X 23.8/22.8, Y 98.0/22.5, Z 15.0/12.2
   ok   tray :: board platform is stated from the plate body
-       plate 68.0 x 52.0 x 7.0 mm; usable inside the rim 63.0 x 47.0 mm
+       plate 71.0 x 65.0 x 7.0 mm; usable inside the rim 66.0 x 60.0 mm
   ok   tray :: ESP32 DevKitC fits inside the rim
-       ESP32 DevKitC 54.5 x 28.0 mm in 63.0 x 47.0 mm
+       ESP32 DevKitC 54.5 x 28.0 mm in 66.0 x 60.0 mm
   ok   tray :: PCA9685 fits inside the rim
-       PCA9685 62.5 x 25.4 mm in 63.0 x 47.0 mm
+       PCA9685 62.5 x 25.4 mm in 66.0 x 60.0 mm
   ok   tray :: INA219 fits inside the rim
-       INA219 25.5 x 27.9 mm in 63.0 x 47.0 mm
-  FAIL tray :: all three boards fit without stacking
-       board area 3825 mm2 vs platform 2961 mm2 (stack them)
+       INA219 25.5 x 27.9 mm in 66.0 x 60.0 mm
+  ok   tray :: all three boards fit without stacking
+       board area 3825 mm2 vs platform 3960 mm2 (planar layout possible)
   ok   tray :: standoff holes accept a self-tapper
        measured 2.80 mm pilot bore
+  ok   tray :: cable clips are connected to the tray
+       10 clip rings whose nearest material starts at y = 30.5 mm, each bridged to the plate edge at y = 32.5 mm
+  ok   tray :: clip bore suits a servo loom
+       measured bore 8.00 mm for a 4 mm cable pair
   ok   rover :: wheel diameter from its own rim vertices
        48 mm wheel, 5 mm thick, ground gap 12 mm; z levels in the file: 0.0, 10.0, 14.0, 21.5, 22.9, 25.1 ...
   ok   rover :: wheels are on the bed, or need a stated support plan
        wheels start at z = 21.5 mm while the caster cup reaches the bed at z = 0.0 mm - split the three bodies in your slicer and lay the wheels flat, or let supports carry them
-  FAIL claw :: finger hubs land on the palm's pivot sleeves
-       the palm's sleeves are 22.00 mm apart (declared y = -11.0 / 11.0), the claw's hubs are 32.00 mm apart (hard-coded y = -16.0 / 16.0) - 10.00 mm of mismatch, and no single translation mates the pair
-  FAIL claw :: finger hub 1 slides over its sleeve
-       palm sleeve OD 8.00 mm vs finger hub bore 6.10 mm (-1.90 mm: the hub cannot go on at any pitch)
-  FAIL claw :: finger hub 2 slides over its sleeve
-       palm sleeve OD 8.00 mm vs finger hub bore 6.10 mm (-1.90 mm: the hub cannot go on at any pitch)
-  FAIL claw :: the two tooth rings reach each other at the centre line
-       the fingers stay 10.00 mm apart on the centre line (5.00 mm short per finger); at a 32.0 mm pivot pitch a 1:1 pair needs its teeth out to r = 16.00 mm, and build_09 draws them at r = 9.0 mm (the same docstring advertises a 22 mm pitch circle, i.e. r = 11.0)
+  ok   claw :: finger hubs land on the palm's pivot sleeves
+       the palm's sleeves are 22.00 mm apart (declared y = -11.0 / 11.0), the claw's hubs measure 22.00 mm apart (at y = -11.00 / 11.00) - 0.00 mm of mismatch
+  ok   claw :: finger hub 1 slides over its sleeve
+       palm sleeve OD 8.00 mm vs finger hub bore 8.90 mm (0.90 mm)
+  ok   claw :: finger hub 2 slides over its sleeve
+       palm sleeve OD 8.00 mm vs finger hub bore 8.90 mm (0.90 mm)
+  ok   claw :: finger 1 teeth reach the centre line
+       the teeth of finger 1 reach 13.00 mm from their own hub centre; a 1:1 pair at a 22.0 mm pitch needs 11.00 mm
+  ok   claw :: finger 2 teeth reach the centre line
+       the teeth of finger 2 reach 12.78 mm from their own hub centre; a 1:1 pair at a 22.0 mm pitch needs 11.00 mm
+  ok   claw :: the two fingers mesh without interfering
+       the two finger solids are apart, closest approach 0.36 mm apart (a 1:1 pair interleaves with the tooth space minus one tooth of clearance)
 
 ======================================================================================================================
   CLEARANCE
 ======================================================================================================================
-  FAIL J2 :: child never enters the parent through the travel
-       0 of 10668 sampled points of the child sit inside the parent at 5.0 deg and 12 child edge(s) pass through the parent's surface at 0.0 deg, first at (-15.0, 0.0, 46.0)
-  FAIL J3 :: child never enters the parent through the travel
-       1314 of 9380 sampled points of the child sit inside the parent at -2.5 deg and 754 child edge(s) pass through the parent's surface at -5.0 deg, first at (71.9, -41.8, 5.7); first offender at (66.4, -41.8, 3.4) mm in the parent frame
-  FAIL J4 :: child never enters the parent through the travel
-       620 of 7224 sampled points of the child sit inside the parent at -5.0 deg and 343 child edge(s) pass through the parent's surface at 5.0 deg, first at (89.7, 5.8, -0.6); first offender at (63.4, 4.6, -0.3) mm in the parent frame
+  ok   J2 :: no material inside the parent over the travel [-55..20 deg]
+       0 of 10752 sampled points inside
+  ok   J2 :: no surface crossing over the travel [-55..20 deg]
+       0 child edge(s) through the parent
+  ok   J2 :: the mechanical stop outside the travel
+       clear through the declared travel; the arm touches on the -55 side at -70.0 deg (52 edge crossing(s), 35 point(s) inside, near (-23.0, 5.8, 13.6)) and on the 20 side at 25.0 deg (150 edge crossing(s), 5 point(s) inside, near (26.5, 5.8, 10.8)). The firmware must clamp this joint to -55..20 deg.
+  ok   J3 :: no material inside the parent over the travel [-90..90 deg]
+       0 of 9380 sampled points inside
+  ok   J3 :: no surface crossing over the travel [-90..90 deg]
+       0 child edge(s) through the parent
+  ok   J3 :: the mechanical stop outside the travel
+       no clash anywhere in +-90 deg; the declared travel -90..90 deg is not set by this pair
+  ok   J4 :: no material inside the parent over the travel [-25..55 deg]
+       0 of 7560 sampled points inside
+  ok   J4 :: no surface crossing over the travel [-25..55 deg]
+       0 child edge(s) through the parent
+  ok   J4 :: the mechanical stop outside the travel
+       clear through the declared travel; the arm touches on the -25 side at -40.0 deg (12 edge crossing(s), 0 point(s) inside, near (53.2, 3.3, 19.0)) and on the 55 side at 70.0 deg (12 edge crossing(s), 0 point(s) inside, near (87.3, -11.5, -5.4)). The firmware must clamp this joint to -25..55 deg.
 
 ======================================================================================================================
-  199 of 220 checks passed
-  FAIL topology :: 04_base_upper_turret_j2.stl :: prints as 1 piece(s), not more :: 2 printed piece(s) from 6 edge-disjoint solid(s); 6 cross, tightest 0 um
-  FAIL topology :: 05_upper_arm_link_80mm.stl :: prints as 1 piece(s), not more :: 4 printed piece(s) from 8 edge-disjoint solid(s); 6 cross, tightest 0 um
-  FAIL topology :: 06_forearm_link_75mm.stl :: prints as 1 piece(s), not more :: 4 printed piece(s) from 9 edge-disjoint solid(s); 7 cross, tightest 0 um
-  FAIL topology :: 07_wrist_pitch_roll_bracket.stl :: prints as 1 piece(s), not more :: 2 printed piece(s) from 5 edge-disjoint solid(s); 5 cross, tightest 0 um
-  FAIL topology :: 12_drive_wheels_and_caster.stl :: prints as 3 piece(s), not more :: 11 printed piece(s) from 22 edge-disjoint solid(s); 12 cross, 3 inside, tightest 0 um
-  FAIL fits :: passive pin bore, upper arm :: assembles at worst-case print error :: FAIL: measured 6.417 mm, nominal part 6.0 +/-0.30, so bore 6.12 vs part 6.30 = margin -0.18 mm (nominal slack 0.42 mm) - 6 mm PRINTED pivot pin (so this fit is print-on-print)
-  FAIL fits :: passive pin bore, forearm :: assembles at worst-case print error :: FAIL: measured 6.536 mm, nominal part 6.0 +/-0.30, so bore 6.24 vs part 6.30 = margin -0.06 mm (nominal slack 0.54 mm) - 6 mm PRINTED pivot pin
-  FAIL fits :: wheel hub bore, left :: assembles at worst-case print error :: FAIL: measured 4.957 mm, nominal part 4.9 +/-0.10, so bore 4.66 vs part 5.00 = margin -0.34 mm (nominal slack 0.06 mm) - servo shaft / horn boss through the wheel
-  FAIL fits :: wheel hub bore, right :: assembles at worst-case print error :: FAIL: measured 4.957 mm, nominal part 4.9 +/-0.10, so bore 4.66 vs part 5.00 = margin -0.34 mm (nominal slack 0.06 mm) - servo shaft / horn boss through the wheel
-  FAIL placement :: J1 MG996R in the base tower :: case still fits at worst-case print error :: tightest axis Y keeps -0.10 mm after 2 x 0.15 mm of growth
-  FAIL placement :: J4 MG90S in the forearm :: case still fits at worst-case print error :: tightest axis X keeps -0.10 mm after 2 x 0.15 mm of growth
-  FAIL placement :: J5 MG90S in the wrist :: case 12.2 mm fits along Y :: free 6.3 mm down / 3.3 mm up; case needs 12.2 mm (slack -2.55 mm)
-  FAIL placement :: J5 MG90S in the wrist :: case still fits at worst-case print error :: tightest axis Y keeps -3.15 mm after 2 x 0.15 mm of growth
-  FAIL placement :: tray :: all three boards fit without stacking :: board area 3825 mm2 vs platform 2961 mm2 (stack them)
-  FAIL clearance :: J2 :: child never enters the parent through the travel :: 0 of 10668 sampled points of the child sit inside the parent at 5.0 deg and 12 child edge(s) pass through the parent's surface at 0.0 deg, first at (-15.0, 0.0, 46.0)
-  FAIL clearance :: J3 :: child never enters the parent through the travel :: 1314 of 9380 sampled points of the child sit inside the parent at -2.5 deg and 754 child edge(s) pass through the parent's surface at -5.0 deg, first at (71.9, -41.8, 5.7); first offender at (66.4, -41.8, 3.4) mm in the parent frame
-  FAIL clearance :: J4 :: child never enters the parent through the travel :: 620 of 7224 sampled points of the child sit inside the parent at -5.0 deg and 343 child edge(s) pass through the parent's surface at 5.0 deg, first at (89.7, 5.8, -0.6); first offender at (63.4, 4.6, -0.3) mm in the parent frame
-  FAIL placement :: claw :: finger hubs land on the palm's pivot sleeves :: the palm's sleeves are 22.00 mm apart (declared y = -11.0 / 11.0), the claw's hubs are 32.00 mm apart (hard-coded y = -16.0 / 16.0) - 10.00 mm of mismatch, and no single translation mates the pair
-  FAIL placement :: claw :: finger hub 1 slides over its sleeve :: palm sleeve OD 8.00 mm vs finger hub bore 6.10 mm (-1.90 mm: the hub cannot go on at any pitch)
-  FAIL placement :: claw :: finger hub 2 slides over its sleeve :: palm sleeve OD 8.00 mm vs finger hub bore 6.10 mm (-1.90 mm: the hub cannot go on at any pitch)
-  FAIL placement :: claw :: the two tooth rings reach each other at the centre line :: the fingers stay 10.00 mm apart on the centre line (5.00 mm short per finger); at a 32.0 mm pivot pitch a 1:1 pair needs its teeth out to r = 16.00 mm, and build_09 draws them at r = 9.0 mm (the same docstring advertises a 22 mm pitch circle, i.e. r = 11.0)
+  230 of 230 checks passed
 ======================================================================================================================

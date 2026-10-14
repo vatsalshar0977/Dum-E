@@ -33,7 +33,7 @@ this robot · never leave a stalled servo powered · one change at a time.
 - [ ] **6. Rebuild + re-audit the parts** —
       `python src\phase2_mechanical\generate_stl_parts.py` ·
       `python src\phase2_mechanical\verify_print_parts.py` → `PASS: every part` ·
-      `python src\phase2_mechanical\verify_assembly_fit.py` → **`TOTAL 206 / 206 checks PASS`**
+      `python src\phase2_mechanical\verify_assembly_fit.py` → **`TOTAL 204 / 204 checks PASS`**
 - [ ] **7. Firmware, compiled and executed** —
       `g++ -std=c++11 -Wall -Wextra -Wpedantic -o reflex.exe firmware\phase3_full_6dof_esp32\test_reflex_logic.cpp` then `.\reflex.exe` → `PASS: 73 / 73`
       `g++ -std=c++11 -Wall -Wextra -I tests\firmware_host -o fw.exe tests\firmware_host\main.cpp` then `.\fw.exe` → `PASS: 83 / 83` (sections 13-15 prove the sonar fails closed and that every documented command is accepted)

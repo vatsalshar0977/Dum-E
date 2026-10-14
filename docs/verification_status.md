@@ -67,7 +67,7 @@ Run `python3 -m unittest discover -s tests -v`; this checks URDF structure, FK/I
   measured from bore rings: `44.000 / 44.600`, `42.000 / 42.600`, `29.000 / 29.600`.
 - A real defect was found and fixed: the hex nut traps in part `03` were rectangular because
   the hole carver's radial fan collapsed on a regular hexagon. See phase 2 Appendix B.2.
-- `verify_assembly_fit.py` now reports **206 / 206 PASS**; `verify_print_parts.py` PASSes; the
+- `verify_assembly_fit.py` now reports **204 / 204 PASS**; `verify_print_parts.py` PASSes; the
   unit suite is 33 tests, OK.
 - The STLs are exported in the **assembly frame** (a joint axis is the origin). Parts `05`-`08`
   therefore start below `z = 0`; the checks assert a *flat base* rather than `z_min == 0`, and

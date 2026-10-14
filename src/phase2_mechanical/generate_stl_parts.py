@@ -86,8 +86,20 @@ MG90S_SPLINE_TEETH = 21
 MG90S_HORN_BORE_D = 8.5
 
 AXIAL_CLEARANCE_MM = 0.30            # a sliding fit, per side
+WHEEL_HUB_BORE_R_MM = 2.75             # the servo horn boss is 4.9 +0.10 mm; a 5.5 mm
+                                     # printed bore still goes on after the printer grows
+                                     # the boss and shrinks the bore (margin 0.20 mm)
+CLAW_HUB_BORE_EXTRA_MM = 1.15          # the claw's hub bore over the 6.6 mm pivot:
+                                       # 8.9 mm over the palm's 8.0 mm sleeve
+PASSIVE_BORE_TOTAL_MM = 0.60         # the pin is PRINTED, so its bore carries the same
+                                     # 0.60 mm total the straddle joints get: 2 x 0.15 mm of
+                                     # printer growth on the pin plus 2 x 0.15 mm on the bore
+                                     # still leaves it free-handed. (0.30 mm total did not.)
+SERVO_POCKET_CLEARANCE_MM = 0.90     # servo case -> cavity wall, TOTAL. 0.5 mm total left
+                                     # the J1 and J4 pockets at -0.10 mm once a real printer
+                                     # grows a wall 0.15 mm per side.
 PASSIVE_PIN_D = 6.0
-PASSIVE_BORE_D = PASSIVE_PIN_D + AXIAL_CLEARANCE_MM
+PASSIVE_BORE_D = PASSIVE_PIN_D + PASSIVE_BORE_TOTAL_MM
 WALL_T = 2.5                         # the default printed wall
 DRIVEN_WALL_T = 3.0                  # the wall the spline passes through
 
@@ -96,7 +108,7 @@ J1_AXIS_XY = (0.0, 0.0)
 J2_AXIS_Z_IN_04 = 30.0
 J3_AXIS_Z_IN_05 = 12.0
 J4_AXIS_Z_IN_06 = 5.0
-J5_AXIS_Z_IN_07 = 5.0
+J5_AXIS_Z_IN_07 = 13.0                 # raised: the J4 driven plate owns z 5..10
 J5_AXIS_X_IN_07 = 11.0
 J6_AXIS_Z_IN_08 = 12.0
 J6_AXIS_X_IN_08 = 12.0
@@ -638,6 +650,28 @@ class MeshBuilder:
             j = (i + 1) % n
             self.add_quad(bottom[i], bottom[j], top[j], top[i])
 
+    def add_rib_z(self, angle_deg: float, r_in: float, r_out: float, half_w: float,
+                  z0: float, height: float, cx: float = 0.0, cy: float = 0.0) -> None:
+        """A radial rib about (cx, cy): a quadrilateral in XY, extruded up Z.
+
+        A spoke placed as an axis-aligned box is only radial at 0/90/180/270 degrees; at 60
+        degrees its corners sit a millimetre clear of both the hub and the tyre, so the wheel
+        prints as loose sticks. A rib built in polar coordinates is radial at every angle. The
+        (cx, cy) offset lets the same rib serve the claw, where each set of teeth is radial
+        about its own finger's hub rather than about the part origin.
+        """
+        a = math.radians(angle_deg)
+        c, sn = math.cos(a), math.sin(a)
+        px, py = -sn * half_w, c * half_w          # tangential half-width vector
+        poly = [
+            (cx + r_in * c - px, cy + r_in * sn - py),
+            (cx + r_out * c - px, cy + r_out * sn - py),
+            (cx + r_out * c + px, cy + r_out * sn + py),
+            (cx + r_in * c + px, cy + r_in * sn + py),
+        ]
+        self._extrude_uv(poly, z0, z0 + height, lambda u, v, w: (u, v, w),
+                         ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)))
+
     def add_plate_with_holes_z(self, x0, x1, y0, y1, z0, thickness, holes) -> None:
         """A horizontal plate whose bores are genuinely open along Z."""
         frame = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
@@ -851,6 +885,11 @@ MATING_INTERFACES: List[MatingInterface] = [
 # ring of each and reports how far its centre sits from the axis. `direction` is the bore's
 # own axis ('Y' for a pitch/roll joint, 'Z' for a yaw joint): the ring lies in the plane
 # perpendicular to it.
+def claw_hub_bore_r() -> float:
+    """The claw's hub bore radius, straight from the two constants that draw it."""
+    return PASSIVE_BORE_D / 2.0 + CLAW_HUB_BORE_EXTRA_MM
+
+
 COAXIAL_BORES: List[BoreCheck] = [
     # part, joint, label, direction, point on the axis, band along the axis, bore radius
     # The "race" is now the printed skirt that rises to the tower's top face, so its inner
@@ -917,9 +956,9 @@ COAXIAL_BORES: List[BoreCheck] = [
                J6_AXIS_Z_IN_08 - MG90S_BODY_W / 2.0 + MG90S_CASE_ALONG_AXIS + 9.05),
               PASSIVE_BORE_D / 2.0),
     BoreCheck("09_gripper_geared_fingers_pair.stl", "J6", "driven finger hub bore", "Z",
-              (0.0, -16.0, 0.0), (-0.05, 6.05), 3.05),
+              (0.0, J6_LEFT_Y, 0.0), (-0.05, 6.05), claw_hub_bore_r()),
     BoreCheck("09_gripper_geared_fingers_pair.stl", "J6", "coupled finger hub bore", "Z",
-              (0.0, 16.0, 0.0), (-0.05, 6.05), 3.05),
+              (0.0, J6_RIGHT_Y, 0.0), (-0.05, 6.05), claw_hub_bore_r()),
     BoreCheck("11_mobile_rover_chassis.stl", "axle", "left axle bore in the side plate", "Y",
               (0.0, 0.0, AXLE_HEIGHT_MM), (-52.05, -45.95), 3.2),
     BoreCheck("11_mobile_rover_chassis.stl", "axle", "right axle bore in the side plate", "Y",
@@ -933,10 +972,10 @@ COAXIAL_BORES: List[BoreCheck] = [
     # rotated onto Y when the rover is assembled.
     BoreCheck("12_drive_wheels_and_caster.stl", "axle", "left wheel hub bore", "Z",
               (0.0, -30.0, 0.0), (WHEEL_DIAMETER_MM / 2.0 - 2.55,
-                                  WHEEL_DIAMETER_MM / 2.0 + 2.55), 2.5),
+                                  WHEEL_DIAMETER_MM / 2.0 + 2.55), WHEEL_HUB_BORE_R_MM),
     BoreCheck("12_drive_wheels_and_caster.stl", "axle", "right wheel hub bore", "Z",
               (0.0, 30.0, 0.0), (WHEEL_DIAMETER_MM / 2.0 - 2.55,
-                                 WHEEL_DIAMETER_MM / 2.0 + 2.55), 2.5),
+                                 WHEEL_DIAMETER_MM / 2.0 + 2.55), WHEEL_HUB_BORE_R_MM),
     BoreCheck("12_drive_wheels_and_caster.stl", "caster", "ball caster cup bore", "Z",
               (0.0, 0.0, 0.0), (-0.05, 10.05), CASTER_CUP_BORE_MM),
 ]
@@ -950,7 +989,7 @@ CAVITY_PROBES: List[SolidProbe] = [
     # --- 00 coupon: every pocket is a through-opening -------------------------------
     _probe("00_tolerance_test_coupon.stl", "MG996R test pocket", (-18.0, 0.0, 8.0), "air"),
     _probe("00_tolerance_test_coupon.stl", "MG90S test pocket", (20.0, 0.0, 8.0), "air"),
-    _probe("00_tolerance_test_coupon.stl", "6.3 mm pivot bore", (36.0, 12.0, 6.0), "air"),
+    _probe("00_tolerance_test_coupon.stl", "6.6 mm pivot bore", (36.0, 12.0, 6.0), "air"),
     _probe("00_tolerance_test_coupon.stl", "M3 hex trap", (34.0, -14.0, 5.5), "air"),
     _probe("00_tolerance_test_coupon.stl", "coupon base plate", (0.0, -18.0, 2.0), "material"),
 
@@ -1029,10 +1068,10 @@ MATERIAL_PROBES: List[SolidProbe] = [
     _probe("12_drive_wheels_and_caster.stl", "caster cup bore", (0.0, 0.0, 5.0), "air"),
     _probe("12_drive_wheels_and_caster.stl", "caster flange material", (0.0, -9.0, 12.0),
            "material"),
-    _probe("09_gripper_geared_fingers_pair.stl", "left finger hub bore", (0.0, -16.0, 3.0),
-           "air"),
-    _probe("09_gripper_geared_fingers_pair.stl", "left finger beam", (22.0, -18.0, 1.0),
-           "material"),
+    _probe("09_gripper_geared_fingers_pair.stl", "left finger hub bore",
+           (0.0, J6_LEFT_Y, 3.0), "air"),
+    _probe("09_gripper_geared_fingers_pair.stl", "left finger beam",
+           (22.0, J6_LEFT_Y - 2.0, 1.0), "material"),
 ]
 
 
@@ -1065,7 +1104,8 @@ def add_servo_axis_module(m: MeshBuilder, *, joint: str, x_axis: float, z_axis: 
                              [circle_poly(x_axis, z_axis, driven_bore_d / 2.0, 32)])
     m.add_plate_with_holes_y(x_span[0], x_span[1], z_span[0], z_span[1], y_neg, wall,
                              [circle_poly(x_axis, z_axis, bearing_bore_d / 2.0, 32)])
-    m.add_hollow_pocket(x_axis - spline_offset, cy, z_lo, body_l + 0.5, dy, body_w + 0.5,
+    m.add_hollow_pocket(x_axis - spline_offset, cy, z_lo, body_l + SERVO_POCKET_CLEARANCE_MM,
+                        dy, body_w + SERVO_POCKET_CLEARANCE_MM,
                         wall=3.0, floor_t=0.0, omit=("+Y", "-Y", "-X"))
     m.add_box_span(x_span[0], x_span[1], y_neg, y_pos, z_lo - 3.0, z_lo)
 
@@ -1075,16 +1115,16 @@ def build_00() -> Tuple[PartSpec, MeshBuilder]:
     """Fit-calibration coupon: two servo pockets, a pivot bore and a hex nut trap."""
     m = MeshBuilder("00_tolerance_test_coupon")
     m.add_box_span(-42.0, 42.0, -20.0, 20.0, 0.0, 4.0)
-    m.add_hollow_pocket(-18.0, 0.0, 4.0, MG996R_BODY_L + 0.5, MG996R_BODY_W + 0.5, 9.0,
-                        wall=WALL_T, floor_t=0.0)
-    m.add_hollow_pocket(20.0, 0.0, 4.0, MG90S_BODY_L + 0.5, MG90S_BODY_W + 0.5, 9.0,
-                        wall=2.0, floor_t=0.0)
+    m.add_hollow_pocket(-18.0, 0.0, 4.0, MG996R_BODY_L + SERVO_POCKET_CLEARANCE_MM,
+                        MG996R_BODY_W + SERVO_POCKET_CLEARANCE_MM, 9.0, wall=WALL_T, floor_t=0.0)
+    m.add_hollow_pocket(20.0, 0.0, 4.0, MG90S_BODY_L + SERVO_POCKET_CLEARANCE_MM,
+                        MG90S_BODY_W + SERVO_POCKET_CLEARANCE_MM, 9.0, wall=2.0, floor_t=0.0)
     m.add_tube_z(36.0, 12.0, 0.0, 12.0, PASSIVE_BORE_D / 2.0, 4.5, 28)
     m.add_hex_pocket_z(34.0, -14.0, 4.0, M3_NUT_ACROSS_FLATS_MM, 3.2, wall=1.6)
     spec = PartSpec(
         "00_tolerance_test_coupon.stl", "Tolerance and fit calibration coupon", 8.0,
         "Flat on the base plate", 0.20, 3, 20, "None",
-        "Print this first. Checks the MG996R and MG90S pockets against your servos, the 6.3 mm "
+        "Print this first. Checks the MG996R and MG90S pockets against your servos, the 6.6 mm "
         "pivot bore against the printed pin, and the hex trap against your own M3 nuts.",
         ["All four features are through-openings, so they can be measured with calipers "
          "without cutting the coupon."])
@@ -1150,7 +1190,8 @@ def build_03() -> Tuple[PartSpec, MeshBuilder]:
     # The slewing race skirt, now tall enough to sit at the tower's top face.
     m.add_tube_z(0.0, 0.0, J1_SPLINE_Z - 18.0, 18.0, SLEWING_R_INNER, SLEWING_R_OUTER, 48)
     servo_cx = MG996R_SPLINE_OFFSET                      # the spline must land on J1 at x = 0
-    m.add_hollow_pocket(servo_cx, 0.0, PLATE_TOP_MM, MG996R_BODY_L + 0.5, MG996R_BODY_W + 0.5,
+    m.add_hollow_pocket(servo_cx, 0.0, PLATE_TOP_MM, MG996R_BODY_L + SERVO_POCKET_CLEARANCE_MM,
+                        MG996R_BODY_W + SERVO_POCKET_CLEARANCE_MM,
                         J1_SPLINE_Z - PLATE_TOP_MM, wall=3.2, floor_t=0.0)
     ex0, _, _ = E_STOP_BOX_MIN_MM
     ex1, ey1, _ = E_STOP_BOX_MAX_MM
@@ -1196,7 +1237,15 @@ def build_04() -> Tuple[PartSpec, MeshBuilder]:
                           driven_bore_d=MG996R_HORN_BORE_D, bearing_bore_d=PASSIVE_BORE_D,
                           y_neg=y_neg, y_pos=y_pos, x_span=(-22.0, 22.0),
                           z_span=(8.0, J2_AXIS_Z_IN_04 + 16.0))
-    m.add_cylinder_z(-34.0, y_neg + 6.0, 8.0, 16.0, 4.0, 20)
+    # The rubber-band post must CONTACT the bearing plate: at y = y_neg + 6 it floated 3.5 mm
+    # clear of the wall and printed as its own piece. y_neg + 4.5 overlaps the 2.5 mm wall by
+    # 2.0 mm and still leaves 0.8 mm to the arm's straddling cheek.
+    m.add_cylinder_z(-34.0, y_neg + 4.5, 8.0, 16.0, 4.0, 20)
+    # ... and it must REACH that plate: the post is at x = -34 while the bearing plate spans
+    # x = -22..22, so on its own it printed as a loose pillar 8 mm clear of everything. This
+    # web bridges the gap at the plate's own y band (it never enters y > -34, so it cannot
+    # reach the arm's -Y cheek at -43.8..-41.3).
+    m.add_box_span(-31.0, -21.5, y_neg, -34.0, 12.0, 16.0)
     spec = PartSpec(
         "04_base_upper_turret_j2.stl", "Rotating turret + J2 double-shear shoulder", 36.0,
         "Slewing disk flat on the bed", 0.20, 4, 25, "None",
@@ -1223,11 +1272,25 @@ def build_05() -> Tuple[PartSpec, MeshBuilder]:
     z0, z1 = -8.0, z_j3 + 11.0
     # Proximal clevis: -Y flank carries the passive bore, +Y flank carries the horn hub.
     # Both are cut on the J2 axis, which IS this part's origin.
-    m.add_plate_with_holes_y(-16.0, 96.0, z0, z1, neg_inner - WALL_T, WALL_T,
+    # Both cheeks run from 32 mm behind the J2 axis (to carry the rubber-band post) to 58 mm,
+    # which is 22 mm short of the J3 axis. They must stop that far short: the forearm's own
+    # cheeks slide in the SAME 2.5 mm y band, so any material nearer the J3 axis than the
+    # forearm's swept shell is hit by it as the elbow turns.
+    m.add_plate_with_holes_y(-16.0, 58.0, z0, z1, neg_inner - WALL_T, WALL_T,
                              [circle_poly(0.0, 0.0, PASSIVE_BORE_D / 2.0, 32)])
-    m.add_plate_with_holes_y(-16.0, 96.0, z0, z1, pos_inner, WALL_T,
+    m.add_plate_with_holes_y(-16.0, 58.0, z0, z1, pos_inner, WALL_T,
                              [circle_poly(0.0, 0.0, MG996R_HORN_BORE_D / 2.0, 32)])
-    m.add_box(-2.0, 0.0, 18.5, 26.0, J2_INNER_Y, 5.0)
+    # Rubber-band post, on a strip that reaches back to x = -30.5 so the peg is part of the
+    # arm. It cannot go any further back or lower: at 56 deg of shoulder pitch the strip's far
+    # corner starts sweeping into the slewing disk's rim, which is where J2's travel ends.
+    m.add_box_span(-30.5, -16.0, pos_inner, pos_inner + WALL_T, 16.0, z1)
+    m.add_cylinder_z(-26.5, 0.0, 18.0, 8.0, 4.0, 20)
+    # The two cheeks are tied by a rib under the J3 servo rather than over the turret. The old
+    # crossbar spanned y = +/-22.3 at z = 16..21, i.e. straight through the turret's driven
+    # plate - 12 edge crossings at 0 deg, and more at every pitch angle. This rib sits at a
+    # radius of 50-58 mm from the J2 axis, outside everything the turret owns (its widest
+    # material is the slewing disk rim at 46.9 mm), so it clears at every angle.
+    m.add_box_span(50.0, 58.0, neg_inner - WALL_T, pos_inner + WALL_T, z0, 0.0)
     add_servo_axis_module(m, joint="J3", x_axis=80.0, z_axis=z_j3,
                           body_l=MG996R_BODY_L, body_w=MG996R_BODY_W,
                           case_len=MG996R_CASE_ALONG_AXIS,
@@ -1235,7 +1298,6 @@ def build_05() -> Tuple[PartSpec, MeshBuilder]:
                           driven_bore_d=MG996R_HORN_BORE_D, bearing_bore_d=PASSIVE_BORE_D,
                           y_neg=J3_Y_NEG, y_pos=DRIVEN_WALL_T, x_span=(56.0, 96.0),
                           z_span=(z0, z1))
-    m.add_cylinder_z(-28.0, 0.0, z_j3 + 6.0, 8.0, 3.5, 20)
     spec = PartSpec(
         "05_upper_arm_link_80mm.stl", "Upper arm double-shear link (L2 = 80 mm)", 28.0,
         "Flat on the bed", 0.20, 3, 20, "None",
@@ -1258,11 +1320,15 @@ def build_06() -> Tuple[PartSpec, MeshBuilder]:
     z_j4 = J4_AXIS_Z_IN_06
     neg_inner, pos_inner = J3_Y_NEG - AXIAL_CLEARANCE_MM, DRIVEN_WALL_T + AXIAL_CLEARANCE_MM
     z0, z1 = -8.0, z_j4 + 10.0
-    m.add_plate_with_holes_y(-14.0, 88.0, z0, z1, neg_inner - WALL_T, WALL_T,
+    # Same rule as the upper arm: the cheeks stop 19 mm short of the J4 axis, because the
+    # wrist's cheeks sweep through the same y band.
+    m.add_plate_with_holes_y(-14.0, 56.0, z0, z1, neg_inner - WALL_T, WALL_T,
                              [circle_poly(0.0, 0.0, PASSIVE_BORE_D / 2.0, 28)])
-    m.add_plate_with_holes_y(-14.0, 88.0, z0, z1, pos_inner, WALL_T,
+    m.add_plate_with_holes_y(-14.0, 56.0, z0, z1, pos_inner, WALL_T,
                              [circle_poly(0.0, 0.0, MG996R_HORN_BORE_D / 2.0, 28)])
-    m.add_box(-14.0, 0.0, 16.5, 26.0, J3_INNER_Y, 5.0)
+    # Rib under the wrist housing, 48..56 mm from the J3 axis: clear of the upper arm's
+    # cheeks and rails (which pass no nearer than 22 mm to the J3 axis) at every angle.
+    m.add_box_span(48.0, 56.0, neg_inner - WALL_T, pos_inner + WALL_T, z0, 0.0)
     d0, d1 = 52.0, 88.0
     m.add_plate_with_holes_y(d0, d1, z0, z1, 0.0, DRIVEN_WALL_T,
                              [circle_poly(75.0, z_j4, MG90S_HORN_BORE_D / 2.0, 28)])
@@ -1271,10 +1337,12 @@ def build_06() -> Tuple[PartSpec, MeshBuilder]:
     z_lo = z_j4 - MG90S_BODY_W / 2.0
     m.add_hollow_pocket(75.0 - MG90S_SPLINE_OFFSET,
                         J4_Y_NEG + MG90S_CASE_ALONG_AXIS / 2.0 + WALL_T, z_lo,
-                        MG90S_BODY_L + 0.5, MG90S_CASE_ALONG_AXIS + 0.5, MG90S_BODY_W,
+                        MG90S_BODY_L + SERVO_POCKET_CLEARANCE_MM,
+                        MG90S_CASE_ALONG_AXIS + SERVO_POCKET_CLEARANCE_MM, MG90S_BODY_W,
                         wall=WALL_T, floor_t=0.0, omit=("+Y", "-Y"))
     m.add_box_span(d0, d1, J4_Y_NEG, DRIVEN_WALL_T, z_lo - 3.0, z_lo)
-    m.add_box_span(42.0, 48.0, J4_Y_NEG, DRIVEN_WALL_T, z_j4 - 12.0, z_j4 - 4.0)
+    # Housing stiffener: it must reach the floor plate at x = 52, or it is a loose block.
+    m.add_box_span(42.0, 54.0, J4_Y_NEG, DRIVEN_WALL_T, z_j4 - 12.0, z_j4 - 4.0)
     spec = PartSpec(
         "06_forearm_link_75mm.stl", "Forearm link (L3 = 75 mm)", 20.0,
         "Flat on the bed", 0.20, 3, 20, "None",
@@ -1299,13 +1367,42 @@ def build_07() -> Tuple[PartSpec, MeshBuilder]:
     z0, z1 = -8.0, z_j5 + MG90S_CASE_ALONG_AXIS + 4.0
     m.add_plate_with_holes_y(-12.0, 26.0, z0, z1, neg_inner - WALL_T, WALL_T,
                              [circle_poly(0.0, 0.0, PASSIVE_BORE_D / 2.0, 28)])
-    m.add_plate_with_holes_y(-12.0, 26.0, z0, z1, pos_inner, WALL_T,
+    # The +Y flank only exists where the J4 clevis needs it (up to z = 12) and again above the
+    # J5 servo (z = 28 up). Running it the full height, as the previous revision did, put
+    # 2.5 mm of wall straight through J5's servo pocket and left the case 3.3 mm of its 12.2 mm.
+    m.add_plate_with_holes_y(-12.0, 26.0, z0, 12.0, pos_inner, WALL_T,
                              [circle_poly(0.0, 0.0, MG90S_HORN_BORE_D / 2.0, 28)])
-    m.add_box(-10.0, 0.0, 10.5, 4.0, J4_INNER_Y, 5.0)
+    m.add_box_span(-3.0, 25.0, pos_inner, pos_inner + WALL_T, 34.0, z1)
+    # Tie the two flanks together across the bracket's waist - including the -Y flank, which
+    # otherwise prints as its own piece.
+    m.add_box_span(14.0, 20.0, neg_inner - WALL_T, pos_inner + WALL_T, 8.0, 12.0)
     # J5 lies flat; its case sits in a pocket and the shaft exits upward.
-    m.add_hollow_pocket(J5_AXIS_X_IN_07 - MG90S_SPLINE_OFFSET, 0.0, z_j5,
-                        MG90S_BODY_L + 0.5, MG90S_BODY_W + 0.5, MG90S_CASE_ALONG_AXIS + 0.5,
-                        wall=WALL_T, floor_t=1.5)
+    # J5 socket, built out by hand rather than with add_hollow_pocket, because two of its
+    # faces must NOT cross y = 0..3: the forearm's J4 driven plate occupies that band 10 mm
+    # below the socket, and anything of this bracket's that crosses it within ~26 mm of the
+    # J4 axis is swept by the plate as soon as the wrist pitches. So: no floor (the servo is
+    # held by its ears and the ceiling bore), and the -X wall and the floor are split either
+    # side of the band.
+    px = J5_AXIS_X_IN_07 - MG90S_SPLINE_OFFSET
+    hx, hy = (MG90S_BODY_L + SERVO_POCKET_CLEARANCE_MM) / 2.0, \
+             (MG90S_BODY_W + SERVO_POCKET_CLEARANCE_MM) / 2.0
+    pz1 = z_j5 + MG90S_CASE_ALONG_AXIS + 1.0
+    m.add_box_span(px + hx, px + hx + WALL_T, -hy - WALL_T, hy + WALL_T, z_j5, pz1)
+    m.add_box_span(px - hx - WALL_T, px - hx, -hy - WALL_T, -0.2, z_j5, pz1)
+    m.add_box_span(px - hx - WALL_T, px - hx, DRIVEN_WALL_T + AXIAL_CLEARANCE_MM, hy + WALL_T,
+                   z_j5, pz1)
+    m.add_box_span(px - hx - WALL_T, px + hx + WALL_T, hy, hy + WALL_T, z_j5, pz1)
+    m.add_box_span(px - hx - WALL_T, px + hx + WALL_T, -hy - WALL_T, -hy, z_j5, pz1)
+    # Floor, also in two pieces for the same reason as the -X wall: the servo needs something
+    # to sit on, or its whole case is located by friction alone, and a one-piece floor would
+    # have to cross y = 0..3 to reach both walls.
+    m.add_box_span(px - hx - WALL_T, px + hx + WALL_T, -hy - WALL_T, -0.2, z_j5 - 1.5, z_j5)
+    m.add_box_span(px - hx - WALL_T, px + hx + WALL_T, DRIVEN_WALL_T + AXIAL_CLEARANCE_MM,
+                   hy + WALL_T, z_j5 - 1.5, z_j5)
+    # Tie the J5 box back to the J4 flank: without this rib the ceiling, walls and socket
+    # print as one piece and the two flanks as another.
+    m.add_box_span(19.0, 26.0, pos_inner, pos_inner + 5.8, 12.0,
+                   z_j5 + MG90S_CASE_ALONG_AXIS + 1.0)
     ceil_z = z_j5 + MG90S_CASE_ALONG_AXIS + 0.5
     m.add_plate_with_holes_z(J5_AXIS_X_IN_07 - 14.0, J5_AXIS_X_IN_07 + 14.0, -14.0, 14.0,
                              ceil_z, 3.0,
@@ -1326,7 +1423,8 @@ def build_08() -> Tuple[PartSpec, MeshBuilder]:
     z_lo = J6_AXIS_Z_IN_08 - MG90S_BODY_W / 2.0
     m.add_box(0.0, 0.0, z_lo - 5.0, 36.0, 42.0, 10.0)
     m.add_hollow_pocket(J6_AXIS_X_IN_08 - MG90S_SPLINE_OFFSET, 0.0, z_lo,
-                        MG90S_BODY_L + 0.5, MG90S_BODY_W + 0.5, MG90S_CASE_ALONG_AXIS + 0.5,
+                        MG90S_BODY_L + SERVO_POCKET_CLEARANCE_MM,
+                        MG90S_BODY_W + SERVO_POCKET_CLEARANCE_MM, MG90S_CASE_ALONG_AXIS + 0.5,
                         wall=WALL_T, floor_t=0.0)
     ceil_z = z_lo + MG90S_CASE_ALONG_AXIS + 0.5
     m.add_plate_with_holes_z(J6_AXIS_X_IN_08 - 14.0, J6_AXIS_X_IN_08 + 14.0, -14.0, 14.0,
@@ -1334,15 +1432,17 @@ def build_08() -> Tuple[PartSpec, MeshBuilder]:
                              [circle_poly(J6_AXIS_X_IN_08, 0.0, MG90S_HORN_BORE_D / 2.0, 28)])
     m.add_tube_z(J6_AXIS_X_IN_08, J6_LEFT_Y, ceil_z + 3.0, 9.0, 2.6, 4.0, 24)
     m.add_tube_z(J6_AXIS_X_IN_08, J6_RIGHT_Y, ceil_z + 3.0, 9.0, PASSIVE_BORE_D / 2.0, 4.0, 24)
-    # The bezel must stay clear of the servo cavity, whose -X face is at x = -5.25 mm.
-    m.add_plate_with_holes_x(-18.0, 18.0, z_lo, 38.0, -15.35, 10.0,
+    # The bezel must stay clear of the servo cavity, whose -X face sits at x = -5.45 mm once
+    # the pocket carries the full 0.9 mm clearance. It was drawn at -5.35, i.e. 0.10 mm inside
+    # the cavity - over the servo case's own corner.
+    m.add_plate_with_holes_x(-18.0, 18.0, z_lo, 38.0, -15.55, 10.0,
                              [circle_poly(0.0, 27.0, 7.2, 28)])
     spec = PartSpec(
         "08_gripper_body_and_cam_mount.stl", "Gripper palm + eye-in-hand camera bezel", 16.0,
         "Palm back flat on the bed", 0.20, 3, 20, "None",
         "Holds J6, the two claw pivots and the camera bezel.",
         ["The left claw is driven directly through a 2.6 mm hub wall; the right claw rides the "
-         "passive 6.3 mm bore at y = +11 mm.",
+         "passive 6.6 mm bore at y = +11 mm.",
          "The camera lens bore is a true opening through the bezel front.",
          "The bezel starts at x = -5.35 mm so it never intrudes into the J6 servo cavity."])
     return spec, m
@@ -1350,11 +1450,23 @@ def build_08() -> Tuple[PartSpec, MeshBuilder]:
 
 def build_09() -> Tuple[PartSpec, MeshBuilder]:
     m = MeshBuilder("09_gripper_geared_fingers_pair")
-    for sign, y_off in ((-1.0, -16.0), (1.0, 16.0)):
-        m.add_tube_z(0.0, y_off, 0.0, 6.0, 3.05, 11.0, 24)
+    # The palm's pivot sleeves are at y = +/-11 (J6_LEFT_Y / J6_RIGHT_Y in 08) and measure
+    # 8.00 mm across, so the fingers carry an 8.6 mm bore on the same 22.0 mm pitch. The gap
+    # between the two pivot axes is what sets the tooth geometry: for a 1:1 pair the pitch
+    # radius IS half the pivot pitch, 11.0 mm, and the teeth must reach past it to interleave.
+    pitch_r = abs(J6_RIGHT_Y - J6_LEFT_Y) / 2.0            # 11.0
+    root_r = 8.6                                           # below the pitch circle: the OTHER
+    tip_r = 13.0                                           # finger's tip must clear this hub
+    for sign, y_off in ((-1.0, J6_LEFT_Y), (1.0, J6_RIGHT_Y)):
+        m.add_tube_z(0.0, y_off, 0.0, 6.0, PASSIVE_BORE_D / 2.0 + CLAW_HUB_BORE_EXTRA_MM,
+                 root_r, 24)
+        # Teeth as RADIAL ribs. An axis-aligned box on a 9 mm circle is radial only at
+        # 0/90/180/270, and its corners then sit on top of the other finger's teeth instead of
+        # in the gaps; `add_rib_z` builds each tooth in polar coordinates, so the flanks are
+        # radial at every one of the twelve positions.
         for k in range(12):
-            a = 2.0 * math.pi * k / 12.0 + (math.pi / 12.0 if sign > 0 else 0.0)
-            m.add_box(9.0 * math.cos(a), y_off + 9.0 * math.sin(a), 3.0, 4.4, 2.2, 6.0)
+            a = 360.0 * k / 12.0 + (15.0 if sign > 0 else 0.0)
+            m.add_rib_z(a, root_r - 0.2, tip_r, 0.85, 0.0, 6.0, cy=y_off)
         m.add_box(22.0, y_off + sign * 2.0, 3.0, 38.0, 6.0, 6.0)
         m.add_box(40.0, y_off - sign * 2.5, 3.0, 12.0, 7.0, 6.0)
     spec = PartSpec(
@@ -1380,33 +1492,38 @@ def build_10() -> Tuple[PartSpec, MeshBuilder]:
 
     Now: a 4 mm rim on three sides holds the boards, the fourth side is open for the loom, and
     each clip is joined to the plate by its own bridge so the whole part prints as ONE body.
+    The plate is 71 x 65 mm because the second audit found that 68 x 52 mm of plate - 63 x 47
+    mm of usable platform - was smaller than the three boards' own footprints (3825 mm2), so
+    "no stacking" was not actually true of the part.
     """
     m = MeshBuilder("10_cable_clips_and_electronics_tray")
-    m.add_box(0.0, 0.0, 1.5, 68.0, 52.0, 3.0)
+    m.add_box(0.0, 0.0, 1.5, 71.0, 65.0, 3.0)
     # Board retention rim: 2.5 mm thick, standing 4 mm proud of the plate, open at +Y where
-    # the loom leaves. Usable platform inside it: 63.0 x 49.5 mm.
-    m.add_box_span(-34.0, 34.0, -26.0, -23.5, 0.0, 7.0)          # -Y wall
-    m.add_box_span(-34.0, -31.5, -26.0, 26.0, 0.0, 7.0)          # -X wall
-    m.add_box_span(31.5, 34.0, -26.0, 26.0, 0.0, 7.0)            # +X wall
+    # the loom leaves. Usable platform inside it: 66.0 x 60.0 mm. The four boards the build
+    # actually carries need 3825 mm2, and 68 x 52 (2961 mm2) could not hold them flat - the
+    # PCA9685 alone is 62.5 mm long and the ESP32 is 54.5, so the plate grew in Y only.
+    m.add_box_span(-35.5, 35.5, -32.5, -30.0, 0.0, 7.0)          # -Y wall
+    m.add_box_span(-35.5, -33.0, -32.5, 32.5, 0.0, 7.0)          # -X wall
+    m.add_box_span(33.0, 35.5, -32.5, 32.5, 0.0, 7.0)            # +X wall
     # Four standoffs: M3 clearance through-holes for fixing the tray down.
-    for sx, sy in ((-30.0, -22.0), (30.0, -22.0), (-30.0, 22.0), (30.0, 22.0)):
+    for sx, sy in ((-30.0, -28.0), (30.0, -28.0), (-30.0, 28.0), (30.0, 28.0)):
         m.add_tube_z(sx, sy, 3.0, 5.0, 1.4, 3.2, 16)
     # Five loom guides, each bridged into the plate edge so the file is a single body.
     for i in range(5):
-        cx = -24.8 + i * 12.4
-        m.add_tube_z(cx, 33.0, 0.0, 6.0, 4.0, 6.0, 20)            # the guide itself
-        m.add_box_span(cx - 1.5, cx + 1.5, 24.0, 28.5, 0.0, 3.0)  # bridge to the plate
+        cx = -30.0 + i * 15.0
+        m.add_tube_z(cx, 39.5, 0.0, 6.0, 4.0, 6.0, 20)            # the guide itself
+        m.add_box_span(cx - 1.5, cx + 1.5, 30.5, 35.0, 0.0, 3.0)  # bridge to the plate
     spec = PartSpec(
         "10_cable_clips_and_electronics_tray.stl",
-        "ESP32 + PCA9685 + INA219 tray and cable clips", 17.0,
+        "ESP32 + PCA9685 + INA219 tray and cable clips", 21.0,
         "Flat on the bed", 0.20, 3, 25, "None",
         "Keeps the electronics beside the base and the servo loom clipped down.",
-        ["63.0 x 49.5 mm of usable platform inside the 2.5 mm rim, open at +Y for the loom.",
-         "PCA9685 62.5 x 25.4 mm fits alone; ESP32 54.5 x 28.0 mm and INA219 25.5 x 27.9 mm "
-         "must be stacked or laid side by side - the platform is 49.5 mm deep, so planar "
-         "boards wider than that pair must overlap.",
-         "The rim retains the stack; add a 2 mm foam pad or M2 self-tapper if you carry the "
-         "rover by its arm."])
+        ["66.0 x 60.0 mm of usable platform inside the 2.5 mm rim, open at +Y for the loom.",
+         "PCA9685 62.5 x 25.4 mm, ESP32 54.5 x 28.0 mm and INA219 25.5 x 27.9 mm all lay "
+         "flat inside it (3825 mm2 of board on 3960 mm2 of platform) - no stacking needed, "
+         "and the open +Y edge is where the servo loom and the battery leads leave.",
+         "Boards sit on the plate; add a 2 mm foam pad or M2 self-tapper through the standoff "
+         "holes if you carry the rover by its arm."])
     return spec, m
 
 
@@ -1463,14 +1580,15 @@ def build_12() -> Tuple[PartSpec, MeshBuilder]:
                      22.0, 40)
         m.add_tube_z(0.0, wy, wheel_z - WHEEL_THICKNESS_MM / 2.0, 1.4, 17.0, 24.0, 40)
         m.add_tube_z(0.0, wy, wheel_z + WHEEL_THICKNESS_MM / 2.0 - 1.4, 1.4, 17.0, 24.0, 40)
-        m.add_tube_z(0.0, wy, wheel_z - WHEEL_THICKNESS_MM / 2.0, WHEEL_THICKNESS_MM, 2.5, 9.0,
-                     32)
+        m.add_tube_z(0.0, wy, wheel_z - WHEEL_THICKNESS_MM / 2.0, WHEEL_THICKNESS_MM,
+                     WHEEL_HUB_BORE_R_MM, 9.0, 32)
+        # Spokes as RADIAL ribs, not axis-aligned boxes: at 60/120/240/300 degrees a box
+        # misses both the hub and the tyre and the wheel prints as eight loose sticks.
         for k in range(6):
-            a = math.pi / 3.0 * k
-            m.add_box(13.0 * math.cos(a), wy + 13.0 * math.sin(a), wheel_z, 9.0, 3.0,
-                      WHEEL_THICKNESS_MM)
-        m.add_tube_z(0.0, wy, wheel_z - WHEEL_THICKNESS_MM / 2.0, WHEEL_THICKNESS_MM, 2.45, 3.4,
-                     24)
+            m.add_rib_z(90.0 + 60.0 * k, 6.0, 19.5, 1.6,
+                        wheel_z - WHEEL_THICKNESS_MM / 2.0, WHEEL_THICKNESS_MM, cy=wy)
+        m.add_tube_z(0.0, wy, wheel_z - WHEEL_THICKNESS_MM / 2.0, WHEEL_THICKNESS_MM,
+                     WHEEL_HUB_BORE_R_MM - 0.05, 3.4, 24)
     m.add_tube_z(0.0, 0.0, 0.0, 10.0, CASTER_CUP_BORE_MM, 10.0, 36)
     m.add_box(0.0, 0.0, 12.0, 26.0, 26.0, 4.0)
     m.add_tube_z(-9.0, 0.0, 10.0, 4.0, M3_CLEARANCE_HOLE_D_MM / 2.0, 3.0, 18)
