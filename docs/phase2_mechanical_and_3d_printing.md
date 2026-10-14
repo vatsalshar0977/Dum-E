@@ -52,7 +52,7 @@ Consumer FDM printers vary by $\pm 0.15\text{ mm}$ due to filament flow rate and
 |---|---|---|---|
 | **1. `MG996R` Body Pocket** | `40.7 × 20.2 mm` | `41.20 × 20.70 mm` (`+0.25 mm`/side) | Sliding fit with zero wobble. If too tight, re-run generator with `--clearance-mm 0.32`. |
 | **2. `MG90S` Body Pocket** | `22.8 × 12.4 mm` | `23.30 × 12.90 mm` (`+0.25 mm`/side) | Snug push fit by hand. |
-| **3. Captive `M3` Hex Nut Trap** | `5.50 mm` across flats | `5.65 mm` across flats (`+0.15 mm`) | Press in an M3 hex nut with thumb pressure or pull it in with an M3 screw. Replaces brass heat-set inserts! |
+| **3. Captive `M3` Hex Nut Trap** | `5.90 mm` across flats (a cheap chinese M3 nut, measured) | `5.90 mm` across flats as generated — **0.00 mm clearance**, which the deep audit below flags. Open it to `6.15 mm` (`+0.25 mm`) before printing part `03` for real | Press in an M3 hex nut with thumb pressure or pull it in with an M3 screw once the trap is opened up. Replaces brass heat-set inserts! |
 | **4. Double-Shear `6.0 mm` Pin & Bore** | `6.00 mm` OD pin | `6.30 mm` ID bore (`+0.30 mm` diametral) | Should spin freely with zero radial play after rubbing a tiny dab of PTFE/lithium grease (or dry bar soap) on the pin. |
 
 ```bash
@@ -139,6 +139,30 @@ starts at `z = 5 mm`.
 **A hole pattern agreeing in source is not a fit.** Print both parts, test-fit with power off,
 and measure across opposite bolts with calipers.
 
+## A.2b The deep CAD audit (what it checked and what it found)
+
+`src/phase2_mechanical/deep_cad_audit.py` re-derives every number in this document from the
+shipped STL bytes - topology, true volume and mass, first-layer area and overhang, every bore
+at both ends of a `+/-0.15 mm` printer, servo pocket clearances, board footprints in the tray,
+and interference between mating links through a `-5..+5 deg` joint sweep. It runs 215 checks
+and currently reports 202 pass / 13 open items:
+
+* **J3 and J4 interference**: each link's side rails run the full length of the link, so they
+  pass through the next link's clevis cheeks (`2.5 mm` of overlap in `+Y`, `0.5 mm` in `-Y`).
+  The elbow and wrist will not go together as drawn;
+* **the wrist's `+Y` side plate crosses the J5 servo pocket**, leaving `9.6 mm` of the
+  `12.2 mm` the `MG90S` case needs;
+* the `M3` nut traps, the rover wheel hub bore (`0.06 mm` on a `4.9 mm` boss), the `6 mm`
+  passive-pin bores and the `J1`/`J4` servo pockets all sit at, or inside, nominal once the
+  printer's tolerance is applied;
+* the electronics tray holds the `PCA9685` alone - the `ESP32` and the `INA219` have to stack.
+
+Run it yourself before you print anything:
+
+```bash
+python3 src/phase2_mechanical/deep_cad_audit.py --out docs/cad_deep_audit_report.txt
+```
+
 ## A.3 Correction: 64 mm wheels do not fit a 25 mm chassis
 
 A standard micro servo is 12.2 mm across its body width and its output shaft is centred on
@@ -146,10 +170,12 @@ that width. Mount it shaft-outboard on a 64 mm wheel and the axle must sit 32 mm
 floor, so the servo body centre is at z = 32 mm and its top face reaches **z ≈ 38 mm before
 any wall**. A 25 mm-tall chassis is not compatible with that.
 
-The build therefore uses **48 mm wheels with an 8 mm ground gap**, putting the axle at
-`z = 16 mm` in part coordinates and the servo top at `24.6 mm` — inside a 25 mm part. This is
-recorded as `WHEEL_DIAMETER_MM`, `GROUND_GAP_MM` and `AXLE_HEIGHT_MM` in the generator so you
-can change it deliberately rather than by accident. If you want 64 mm wheels, plan on a
+The build therefore uses **48 mm wheels with a 12 mm ground gap**, putting the axle at
+`z = 12 mm` in part coordinates and the servo body top at `18.1 mm`, clear of the 20 mm
+underside of the deck. (An 8 mm gap would put the servo 2.1 mm *inside* the 25 mm deck — this
+line used to say 8 mm, and that was wrong.) This is recorded as `WHEEL_DIAMETER_MM`,
+`GROUND_GAP_MM` and `AXLE_HEIGHT_MM` in the generator so you can change it deliberately
+rather than by accident. If you want 64 mm wheels, plan on a
 ~40 mm chassis, a smaller ground gap, or N20 gearmotors instead of servos.
 
 ## A.4 What the rover does not come with
