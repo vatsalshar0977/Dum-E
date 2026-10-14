@@ -1,0 +1,94 @@
+<?xml version="1.0" ?>
+<!--
+  B.U.D.-E MoveIt 2 semantic description - DRAFT, NOT A WORKING PLAN.
+
+  Status: this file is hand-written to match urdf/bude_arm.urdf and has NOT been loaded by
+  a real MoveIt 2 install. Verify it with:
+
+      ros2 launch moveit_setup_assistant setup_assistant.launch.py
+      # or, once a package exists:
+      ros2 launch bude_moveit_config demo.launch.py
+
+  Known gaps you must close before trusting a plan:
+    * There is NO gripper group. urdf/bude_arm.urdf models "hand" as a single rigid link
+      with a fixed tcp_fixed joint; the claw fingers do not exist in the URDF yet. Add two
+      revolute finger joints (with one driven by <mimic>) and then define a bude_hand group.
+    * disable_collisions entries below are HAND-WRITTEN from the schematic box geometry.
+      MoveIt's Setup Assistant generates these from real collision checks. Regenerate them
+      after any geometry change, and re-derive the whole URDF from measured parts.
+    * Collision boxes are proxies, not the printed meshes. A collision-free plan in this
+      model is not a collision-free plan on a real bench.
+    * Every named pose below was solved from the schematic kinematics and passes the
+      analytic keep-outs in src/phase5_control/trajectory_and_collision.py. Those are not
+      measured joint values and no limit switch or hard stop was checked.
+-->
+<robot name="bude_prototype">
+
+  <!-- 5-DOF arm chain. Joint order in the URDF: base_yaw, shoulder_pitch, elbow_pitch,
+       wrist_pitch, wrist_roll. Positive shoulder pitch folds the arm forward. -->
+  <group name="bude_arm">
+    <chain base_link="base_link" tip_link="tcp_link"/>
+  </group>
+
+  <!-- Named poses, in RADIANS, in the joint order above.
+       home         - rest position, arm up and back
+       curious_tilt - the "puppy head tilt" that aims the wrist camera at the desk
+       handover     - tool presented high and forward for a person to take
+       sad_droop    - low, folded-down "I dropped it" pose
+       Regenerate with: src/phase5_control/kinematics.py + check_pose_safety() -->
+  <group_state name="home" group="bude_arm">
+    <joint name="base_yaw" value="0.000000000"/>
+    <joint name="shoulder_pitch" value="-0.261799388"/>
+    <joint name="elbow_pitch" value="0.698131701"/>
+    <joint name="wrist_pitch" value="-0.436332313"/>
+    <joint name="wrist_roll" value="0.000000000"/>
+  </group_state>
+
+  <group_state name="curious_tilt" group="bude_arm">
+    <joint name="base_yaw" value="0.261799388"/>
+    <joint name="shoulder_pitch" value="0.000000000"/>
+    <joint name="elbow_pitch" value="0.610865238"/>
+    <joint name="wrist_pitch" value="-0.261799388"/>
+    <joint name="wrist_roll" value="0.349065850"/>
+  </group_state>
+
+  <group_state name="handover" group="bude_arm">
+    <joint name="base_yaw" value="0.000000000"/>
+    <joint name="shoulder_pitch" value="0.205948852"/>
+    <joint name="elbow_pitch" value="0.673697091"/>
+    <joint name="wrist_pitch" value="0.340339204"/>
+    <joint name="wrist_roll" value="0.000000000"/>
+  </group_state>
+
+  <group_state name="sad_droop" group="bude_arm">
+    <joint name="base_yaw" value="0.000000000"/>
+    <joint name="shoulder_pitch" value="0.450294947"/>
+    <joint name="elbow_pitch" value="1.480039206"/>
+    <joint name="wrist_pitch" value="0.687659725"/>
+    <joint name="wrist_roll" value="0.000000000"/>
+  </group_state>
+
+  <!-- Adjacent pairs: always touching by construction. -->
+  <disable_collisions link1="base_link" link2="turret" reason="Adjacent"/>
+  <disable_collisions link1="turret" link2="upper_arm" reason="Adjacent"/>
+  <disable_collisions link1="upper_arm" link2="forearm" reason="Adjacent"/>
+  <disable_collisions link1="forearm" link2="wrist" reason="Adjacent"/>
+  <disable_collisions link1="wrist" link2="hand" reason="Adjacent"/>
+  <disable_collisions link1="hand" link2="tcp_link" reason="Adjacent"/>
+
+  <!-- Pairs the schematic boxes cannot reach in any configuration. Re-derive these from a
+       real collision check once the URDF carries measured geometry. -->
+  <!-- turret<->forearm is deliberately NOT disabled: two joints apart, and the schematic
+       boxes can meet when the elbow folds. Leave that check enabled until it is measured. -->
+  <disable_collisions link1="base_link" link2="forearm" reason="Never"/>
+  <disable_collisions link1="base_link" link2="wrist" reason="Never"/>
+  <disable_collisions link1="base_link" link2="hand" reason="Never"/>
+  <disable_collisions link1="base_link" link2="tcp_link" reason="Never"/>
+  <disable_collisions link1="turret" link2="wrist" reason="Never"/>
+  <disable_collisions link1="turret" link2="hand" reason="Never"/>
+  <disable_collisions link1="turret" link2="tcp_link" reason="Never"/>
+  <disable_collisions link1="upper_arm" link2="hand" reason="Never"/>
+  <disable_collisions link1="upper_arm" link2="tcp_link" reason="Never"/>
+  <disable_collisions link1="forearm" link2="tcp_link" reason="Never"/>
+
+</robot>

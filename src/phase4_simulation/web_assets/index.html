@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B.U.D.-E schematic viewer</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app">
+  <aside id="panel">
+    <h1>B.U.D.-E <span>schematic viewer</span></h1>
+    <p class="warn">
+      Schematic geometry, no physics, no collision, no measurements. A green result means the
+      <em>model</em> has no objection &mdash; it is not permission to run a real arm near a person.
+    </p>
+
+    <section>
+      <h2>Joints</h2>
+      <div id="sliders"></div>
+      <label class="row"><span>Claw</span>
+        <input id="grip" type="range" min="0" max="100" value="70">
+        <output id="gripOut">open</output>
+      </label>
+      <div class="row btns">
+        <button data-pose="home">Home</button>
+        <button data-pose="curious_tilt">Curious tilt</button>
+        <button data-pose="handover">Handover</button>
+        <button data-pose="sad_droop">Sad droop</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Inverse kinematics</h2>
+      <div class="row grid3">
+        <label>X<input id="ikx" type="number" value="185" step="5"></label>
+        <label>Y<input id="iky" type="number" value="0" step="5"></label>
+        <label>Z<input id="ikz" type="number" value="12" step="5"></label>
+      </div>
+      <div class="row grid2">
+        <label>Pitch<input id="ikp" type="number" value="-60" step="5"></label>
+        <label>Roll<input id="ikr" type="number" value="0" step="5"></label>
+      </div>
+      <label class="row check"><input id="ikadapt" type="checkbox" checked>
+        allow pitch adaptation (nearest reachable approach)</label>
+      <div class="row btns">
+        <button id="solve">Solve IK</button>
+        <button id="plan">Plan &amp; play</button>
+        <button id="stop" class="ghost">Stop</button>
+      </div>
+      <p class="hint">Requests outside reach are refused, not silently rounded off. Tick
+        adaptation to search the nearest reachable angle &mdash; the achieved pitch is shown.</p>
+    </section>
+
+    <section>
+      <h2>Mobile rover</h2>
+      <label class="row check"><input id="rover" type="checkbox"> show rover base</label>
+      <div class="row btns">
+        <button id="fetch">Mobile vision nav &amp; fetch</button>
+      </div>
+      <p class="hint">Offline unicycle simulation of the fail-closed drive policy. No traction,
+        braking, tipping or edge-distance model. Never test this on a desk.</p>
+    </section>
+
+    <section>
+      <h2>Parts inspector</h2>
+      <div class="row"><select id="parts"><option>loading&hellip;</option></select></div>
+      <label class="row check"><input id="showPart" type="checkbox"> show mesh on the bench</label>
+      <p class="hint" id="partInfo">Pick a file to see how many triangles it has.</p>
+    </section>
+
+    <section>
+      <h2>Voice &amp; personality <span class="badge ok">phase 7</span></h2>
+      <div id="p7btns" class="chips">loading gestures&hellip;</div>
+      <div class="row">
+        <input id="p7text" type="text" placeholder="hand me the screwdriver" autocomplete="off">
+      </div>
+      <div class="row btns">
+        <button id="p7go">Say it</button>
+        <button id="p7stop" class="ghost">Stop</button>
+      </div>
+      <div id="p7chips" class="chips"></div>
+      <pre id="p7play" class="mini"></pre>
+      <pre id="p7out" class="mini">loading&hellip;</pre>
+      <p class="hint">Every gesture is sampled by the server from
+        <code>personality_engine.py</code> at 100&nbsp;Hz minimum jerk with zero velocity and
+        zero acceleration at each keyframe, then played here at real speed. Typed commands go
+        through the same deterministic parser the voice front end uses. Nothing in this panel
+        touches a servo, and the mic is never opened.</p>
+    </section>
+
+    <section>
+      <h2>Status</h2>
+      <pre id="status">loading model&hellip;</pre>
+    </section>
+  </aside>
+  <main id="stage"><canvas id="view"></canvas>
+    <div id="hud">drag to orbit &middot; wheel to zoom</div>
+  </main>
+</div>
+<script src="/static/model.js"></script>
+<script src="/static/app.js"></script>
+<script src="/static/personality.js"></script>
+</body>
+</html>

@@ -21,3 +21,140 @@ Run `python3 -m unittest discover -s tests -v`; this checks URDF structure, FK/I
 3. Bench-run one servo unloaded, then one joint without a payload with slow limits; calibrate PWM centre, actual travel, direction, mechanical hard stops and current.
 4. For perception, photograph an actual measured chessboard, check reprojection error on held-out images, measure hand-eye extrinsics and depth/height assumptions with a ruler. Ask for human confirmation before object pickup.
 5. Mobile version: start on a **floor** in a contained test area, arm stowed, supervised, with a separate bumper and hard e-stop; do not run on a desk/near people. Require validated independent edge prevention before tabletop use.
+
+## Added with the Phase 5/6 work
+
+- `cad/stl/11_mobile_rover_chassis.stl` and `12_drive_wheels_and_caster.stl` now exist and pass
+  the mesh audit (valid binary STL, seated on the bed, fits a 180 mm plate, no degenerate
+  triangles). Two claims in the earlier write-up were **wrong and have been corrected**:
+  `(-52.0, +-8.0) mm` lies outside the 92 mm base flange (r = 52.6 mm) and inside the E-stop
+  housing, so the interface is now 4x M3 on an r = 36 mm bolt circle; and 64 mm wheels cannot
+  fit a 25 mm chassis with a standard micro servo, so the build uses 48 mm wheels with an 8 mm
+  ground gap. `verify_print_parts.py` measures the bolt circle in the vertex data of both
+  parts, which is a mesh fact, not a fit test.
+- The generator now prints a **mesh-volume column** next to the declared filament weights.
+  Those declared weights were never measured; the mesh volume is an upper bound that ignores
+  infill and double-counts overlaps. `verify_print_parts.py` no longer asserts a `z_min` of
+  zero from a table - it measures it.
+- `src/phase5_control/trajectory_and_collision.py` adds a minimum-jerk planner that checks
+  every sample (an intermediate-sample rejection case is in the test suite) and analytic
+  keep-out volumes. The e-stop keep-out is a **box**, not the sphere the brief specified: the
+  brief's r = 30 mm sphere at (56, 0, 26) leaves a 6.4 mm shell of real housing outside it.
+- `ros2_ws/src/bude_moveit_config/` contains SRDF and controller drafts that are **valid XML
+  and YAML but have never been loaded by MoveIt 2**, plus a bridge whose ROS 2 mode has never
+  been executed. There is no gripper group because the URDF has no finger joints, and no
+  hardware interface because none has been written.
+- `src/phase6_perception/camera_and_hand_eye_calib.py` gained a design-model camera. The
+  projection round trip closes to 2.9e-14 mm over 41 points, which validates the **algebra**.
+  `fx = 532.57 px` is what a 62 deg HFOV implies at 640x480 - it is not a measurement, and the
+  mount offset (0, 30, -43) mm was read off the CAD, not off a caliper.
+- `src/phase6_perception/vision_mobile_navigator.py` added a PCA grasp-roll estimator (which
+  refuses to be usable below 1.5x elongation) and a unicycle simulation harness for the
+  fail-closed drive policy. Neither has been near hardware.
+- The interactive viewer is new. Its browser forward kinematics are compared against the
+  Python implementation by the test suite when `node` is installed; if you edit one, edit both.
+
+## Task 1 upgrade (true hollow / coaxial / straddle)
+
+- `generate_stl_parts.py` no longer carves cavities with overlapping solids: holes and bores
+  come from `add_hollow_pocket`, `add_tube_z`, `add_hex_pocket_z` and `add_plate_with_holes_z`,
+  so a cavity is empty by construction and the mesh writer emits no material inside it.
+- Every driven link now uses the datasheet spline offset (`+10.35 mm` MG996R, `+5.60 mm`
+  MG90S). `verify_assembly_fit.py` measures each bore's own vertex ring against its axis:
+  **25 / 25 rows at 0.0000 mm**, and the servo case centre is 0.0013 mm from the position that
+  puts the spline on the joint axis - that residual is the audit's ray nudge, not the model.
+- Telescoping straddle clearances are +0.60 mm total (+0.30 mm per side) at J2, J3 and J4,
+  measured from bore rings: `44.000 / 44.600`, `42.000 / 42.600`, `29.000 / 29.600`.
+- A real defect was found and fixed: the hex nut traps in part `03` were rectangular because
+  the hole carver's radial fan collapsed on a regular hexagon. See phase 2 Appendix B.2.
+- `verify_assembly_fit.py` now reports **204 / 204 PASS**; `verify_print_parts.py` PASSes; the
+  unit suite is 33 tests, OK.
+- The STLs are exported in the **assembly frame** (a joint axis is the origin). Parts `05`-`08`
+  therefore start below `z = 0`; the checks assert a *flat base* rather than `z_min == 0`, and
+  the slicer's drop-to-bed is a documented step.
+
+## Added with the Phase 7/8 work
+
+- `src/phase7_voice_personality/personality_engine.py` builds six gestures as 100 Hz
+  minimum-jerk keyframes over 6 joints + 2 wheels. Every segment is validated at construction
+  against a per-channel speed budget (`T >= 1.875 * |dq| / v_max`), so an infeasible gesture
+  raises instead of running. The two speed budgets (transport from Phase 5, gesture for
+  empty-handed expressions) are separate and documented.
+- `voice_assistant.py` parses text deterministically with the standard library only: a machine
+  with no microphone, no model and no internet still gets every command. Speech (Whisper
+  `tiny.en`/`base.en`) is optional, opt-in per utterance, and never a background stream.
+  "Stop" is matched first, on the raw sentence, and is not a substitute for the e-stop.
+- The viewer gained a Voice & personality panel that plays the server's own samples through the
+  same joints the sliders drive, so the drawing and the command stream cannot disagree.
+- `safety_supervisor_and_logger.py` evaluates six faults in a fixed order (hardware e-stop,
+  brownout, cliff, obstacle, over-current, missed grasp) plus stale sensors, and logs every tick
+  to `logs/bude_telemetry.jsonl` with joints, TCP xyz, bus volts, milliamps, wheel pulse widths,
+  cliff states and the supervisor phase. All six injectors pass.
+- The e-stop hold latches and, on release, **overwrites the software targets with the measured
+  joint angles before clearing the latch**, so a sagged arm cannot snap. Measured residual in
+  the injector: 0.000 deg.
+- The 5 ms cliff deadline is explicitly assigned to the ESP32 interrupt handler. The Python
+  supervisor stops the wheels in the same tick it sees the sensor, which is zero software
+  delay — not 5 ms of end-to-end hardware latency, and this repository does not claim it.
+- `run_full_acceptance_suite.py` runs all eight phases and reports **43 / 43 checks PASS** in
+  about 26 s. The unit suite is 72 tests (33 + 39), all passing.
+
+## Added with the firmware work (`firmware/phase3_full_6dof_esp32/`)
+
+- The full sketch now exists: six arm channels plus both rover wheels on PCA9685 channels 6
+  and 7, a hardware cliff reflex on GPIO 25/26, a non-blocking HC-SR04 on GPIO 18/19, the
+  ESP32 task watchdog, and I²C bus recovery. The PCA9685 and INA219 are driven straight from
+  `Wire` so that a NACK is visible at all — which is what makes FMEA #12 implementable rather
+  than aspirational.
+- **It is compiled and executed on a laptop, not just written.** `reflex_logic.h` holds the
+  safety logic with no Arduino dependency and `test_reflex_logic.cpp` runs it (73 checks);
+  `tests/firmware_host/main.cpp` `#include`s the real `.ino` against stub Arduino / ESP32 /
+  Wire APIs and drives it with a simulated clock, simulated GPIO, and a PCA9685 whose register
+  writes are decoded back into pulse widths (83 checks). `python3 -m unittest tests.test_firmware`
+  runs both, plus source inspection (no `pulseIn`, no `readStringUntil`, no long `delay()`,
+  ISRs that touch nothing but a timer and a flag, and the cliff serviced before the serial port).
+- Two real defects were found and fixed by that harness rather than by review: `W` bypassed the
+  cliff/obstacle gate that `M`/`G` enforced (the primary wheel command could drive off an edge),
+  and the mirrored wheel directions were assumed rather than stated.
+- **Still unflashed.** The I²C peripheral, the GPIO interrupts, the task watchdog and the
+  servos are models. The <5 ms reflex figure is a requirement the sketch measures against, not
+  a measurement; the simulated edge-to-write latency is 237 µs of *simulated* time. FMEA row
+  #15 — proving the wheel directions on the floor — is deliberately left to you.
+
+## The walkthrough and the two standalone verifiers
+
+`src/phase8_safety_testing/run_phase_walkthrough.py` runs every phase entry point, in order, and
+saves the verbatim output to `docs/phase_walkthrough_transcript.txt`. All 18 commands exit 0. It
+is deliberately **not** a test: it reports what each script printed about itself. The acceptance
+suite is the thing that fails a build.
+
+Two verifiers were added to close gaps the walkthrough exposed:
+
+* `src/phase3_electronics/power_and_wiring_verifier.py` (18 checks) reads the wiring table, the
+  config and the firmware as three independent descriptions and fails when they disagree — a
+  pin, an address or a channel that drifts between them is a silent failure, not a cosmetic one.
+  Its arithmetic is worth knowing: **all six arm servos stalled would demand 10.5 A from a 5 A
+  supply**, so the arm browns out rather than trips, and 22 AWG is a 3 A wire, not a 5 A one.
+* `src/phase4_simulation/verify_urdf_model.py` (10 checks) walks the URDF's own `<origin>` and
+  `<axis>` data and compares the resulting TCP with the analytic solver. This is how the model
+  and the code are kept from describing different robots. It found a units mismatch
+  (`forward()` is millimetres, URDF is metres) and a yaw-convention discrepancy while it was
+  being written.
+
+`src/phase3_electronics/esp32_arm_driver.py` is the laptop end of the serial link. It frames
+`W / M / G / OE / PING / STATUS / HELP`, never duplicates blending or the reflex (those are the
+ESP32's job), defaults to a dry run, and refuses anything that can move the robot over a real
+port without an explicit `--yes`.
+
+## Still not demonstrated
+
+No part has been printed or measured. No servo has been powered. No camera photo has been
+taken. No serial port has been opened. No torque, current, temperature, backlash, repeatability
+or stopping-distance figure in this repository has been measured on hardware. Every number
+marked *declared*, *nominal* or *schematic* is a design intent.
+
+Specifically still missing: a gesture vocabulary checked against collision (the Phase 5 keep-outs
+cover task poses, not expressions); a wall-clock latency budget from speech to first servo
+command; measured thresholds for the over-current, brownout, obstacle and missed-grasp
+detectors; wheel dead-band calibration for the two continuous-rotation servos; a firmware
+fatigue or drop test on the printed links.

@@ -31,6 +31,30 @@ controller:
   default_port: "/dev/tty.usbserial-0001"
   interpolation_rate_hz: 100 # On-board ESP32 cosine/trapezoidal smoothing so cheap servos move smoothly
 
+  # GPIO map, mirrored by firmware/phase3_full_6dof_esp32/phase3_full_6dof_esp32.ino.
+  # tests/test_firmware.py fails if these drift apart from the sketch.
+  pins:
+    sda: 21
+    scl: 22
+    pca9685_oe: 4        # HIGH = outputs tri-stated. 10 kOhm pull-up to 3V3 is mandatory.
+    cliff_left: 25       # TCRT5000, HIGH = no floor. Interrupt + loop.
+    cliff_right: 26      # TCRT5000, HIGH = no floor. Interrupt + loop.
+    sonar_trig: 18       # HC-SR04
+    sonar_echo: 19       # HC-SR04, interrupt captured (never pulseIn)
+
+  # Rover drive channels. Continuous rotation: 1500 us is stop.
+  # The two servos face each other, so the SAME pulse width turns them opposite ways.
+  wheel_left_ch: 6
+  wheel_right_ch: 7
+  wheel_left_forward_above_neutral: false   # left: 1320 us = forward, 1680 us = reverse
+  wheel_right_forward_above_neutral: true   # right: 1680 us = forward, 1320 us = reverse
+
+  # On-board reflex timings. These are DECLARED, not measured, until you flash and trip one.
+  cliff_recoil_ms: 350
+  wheel_command_timeout_ms: 500    # host silence while moving -> neutral (FMEA #11)
+  watchdog_timeout_ms: 5000        # ESP32 task watchdog -> panic + reboot (FMEA #11)
+  reflex_budget_us: 5000           # edge -> both wheel channels written (requirement)
+
 power_system:
   nominal_voltage_v: 6.0    # 6.0V 5A (or 5V 6A) regulated DC power supply brick
   min_safe_voltage_v: 4.8

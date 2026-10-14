@@ -1,0 +1,1128 @@
+================================================================================================
+  B.U.D.-E — PHASE-BY-PHASE WALKTHROUGH
+  Generated 2026-10-14 17:31:09 by src/phase8_safety_testing/run_phase_walkthrough.py
+================================================================================================
+  Every command below is the command you would type. The output is verbatim.
+  NOTHING IN THIS TRANSCRIPT WAS MEASURED ON HARDWARE: no part has been printed,
+  no servo powered, no camera calibrated, no floor driven. Dimensions are models,
+  servo figures are datasheets, and every latency is simulated.
+================================================================================================
+
+################################################################################################
+#  STEP 1 — Phase 1 — Torque, payload and power budget
+################################################################################################
+#  Sizes the servos against the link masses and the workspace the arm must reach.
+
+$ python3 src/phase1_sizing/torque_and_power_calc.py
+------------------------------------------------------------------------------------------------
+================================================================================
+  B.U.D.-E (Sub-$75 3D-Printed Edition) — TORQUE, PAYLOAD & POWER REPORT
+================================================================================
+Proximal Servos (J1-J3) : MG996R / DS3218 Metal-Gear (J1-J3) (1.27 N·m / 13.0 kg·cm)
+Distal Servos   (J4-J6) : MG90S Micro Metal-Gear (J4-J6) (0.216 N·m / 2.2 kg·cm)
+Max Horizontal Reach    : 225.0 mm (22.50 cm)
+Moving Arm Mass (no obj): 170 g (75% lighter wrist thanks to 13.4g MG90S!)
+Total 3D-Printed Mass   : ~210 g of PLA (~$4.00 of filament)
+--------------------------------------------------------------------------------
+
+Scenario: Nominal Continuous Payload (100 g at 225 mm full horizontal reach)
+Joint (Servo)                Static (N·m)   w/ 25% Dyn     % of Stall   Safety Factor
+--------------------------------------------------------------------------------
+J2 Shoulder (MG996R/DS3218)   0.428 N·m      0.535 N·m     42.0%       2.38x [OK (Continuous)]
+J3 Elbow    (MG996R)          0.225 N·m      0.281 N·m     22.0%       4.54x [OK (Continuous)]
+J4 Wrist    (MG90S Micro)     0.089 N·m      0.111 N·m     51.5%       1.94x [OK (With 3D-Printed Spring Assist)]
+
+Scenario: Max Short-Term Payload (160 g at 225 mm full horizontal reach)
+Joint (Servo)                Static (N·m)   w/ 25% Dyn     % of Stall   Safety Factor
+--------------------------------------------------------------------------------
+J2 Shoulder (MG996R/DS3218)   0.560 N·m      0.700 N·m     54.9%       1.82x [OK (With 3D-Printed Spring Assist)]
+J3 Elbow    (MG996R)          0.310 N·m      0.387 N·m     30.4%       3.29x [OK (Continuous)]
+J4 Wrist    (MG90S Micro)     0.130 N·m      0.163 N·m     75.3%       1.33x [OK (With 3D-Printed Spring Assist)]
+
+================================================================================
+  ELECTRICAL POWER BUDGET (@ 6.0V DC BUS, 5.0A PSU + INA219 SENSOR)
+================================================================================
+Operating State                                      Current (A)   Power (W)   5.0A PSU Status
+--------------------------------------------------------------------------------
+Idle / Listening (ESP32 + PCA9685 + 6 servos holding)   0.35 A         2.1 W    PASS (7% of 5.0A)
+Normal Expressive Gesture / Tracking (4 joints moving)   1.25 A         7.5 W    PASS (25% of 5.0A)
+Full-Reach Pick & Handover (100 g screwdriver/cup)     1.85 A        11.1 W    PASS (37% of 5.0A)
+INA219 Software Over-Current Trip Threshold            3.20 A        19.2 W    PASS (64% of 5.0A)
+Worst-Case 6-Servo Stall (3x MG996R + 3x MG90S)        6.15 A        36.9 W    TRIPPED BY INA219 @ 3.2A (<5 ms)
+================================================================================
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: PASS
+
+$ python3 src/phase1_sizing/single_joint_ping.py --dry-run
+------------------------------------------------------------------------------------------------
+=== B.U.D.-E legacy demonstration (PCA9685 Ch=0, dry_run=True) ===
+  [DRY-RUN USB TX] -> {"cmd":"PING"}
+[OK] Connected: FW=BUDE-ESP32-v1.0, PCA9685=0x40, INA219=0x41
+[SAFETY] Setting INA219 single-servo stall current cutoff to 450 mA...
+  [DRY-RUN USB TX] -> {"cmd":"SET_CURRENT_LIMIT","max_ma":450}
+[MOTION] Commanding smooth cosine-interpolated +/-15 deg wiggle...
+  [DRY-RUN USB TX] -> {"cmd":"MOVE","ch":0,"deg":0.0,"pwm_us":1500,"duration_ms":500}
+  -> Ch 0:  +0.0 deg (1500 us) | Bus=5.98V | Current=215 mA
+  [DRY-RUN USB TX] -> {"cmd":"MOVE","ch":0,"deg":15.0,"pwm_us":1667,"duration_ms":500}
+  -> Ch 0: +15.0 deg (1667 us) | Bus=5.98V | Current=215 mA
+  [DRY-RUN USB TX] -> {"cmd":"MOVE","ch":0,"deg":-15.0,"pwm_us":1333,"duration_ms":500}
+  -> Ch 0: -15.0 deg (1333 us) | Bus=5.98V | Current=215 mA
+  [DRY-RUN USB TX] -> {"cmd":"MOVE","ch":0,"deg":0.0,"pwm_us":1500,"duration_ms":500}
+  -> Ch 0:  +0.0 deg (1500 us) | Bus=5.98V | Current=215 mA
+[SAFETY] Disabling PWM pulse on channel (freewheel/relax mode)...
+  [DRY-RUN USB TX] -> {"cmd":"DISABLE","ch":0}
+=== Single-Joint Bringup Complete ===
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: ran
+
+
+################################################################################################
+#  STEP 2 — Phase 2 — 13 STL printability and the 206-point fit audit
+################################################################################################
+#  Every printed part: watertight mesh, true hollow cavities, coaxial bores, straddle clearances, and the rover bolt circle.
+
+$ python3 src/phase2_mechanical/verify_print_parts.py
+------------------------------------------------------------------------------------------------
+
+========================================================================================================
+  1. BINARY STL LAYOUT, BEDS SIZE, BED SEATING  (mesh facts only)
+========================================================================================================
+Part Filename                              X x Y x Z (mm)             Tris  Degen    z_min  180mm bed
+--------------------------------------------------------------------------------------------------------
+00_tolerance_test_coupon.stl                 84.0 x   40.0 x  13.0      380      0    0.000       PASS  seated on z=0
+01_desk_c_clamp_frame.stl                    58.0 x   80.0 x  18.0      400      0    0.000       PASS  seated on z=0
+02_desk_c_clamp_screw_and_pad.stl            61.0 x   32.0 x  60.0      384      0    0.000       PASS  seated on z=0
+03_base_lower_slewing_ring.stl              120.0 x   92.0 x  42.0     2104      0    0.000       PASS  seated on z=0
+04_base_upper_turret_j2.stl                  74.0 x   77.0 x  46.0     1204      0    0.000       PASS  seated on z=0
+05_upper_arm_link_80mm.stl                  126.5 x   49.6 x  34.0     1536      0   -8.000       PASS  assembly frame, 234 flat verts at z=-8.0
+06_forearm_link_75mm.stl                    102.0 x   47.6 x  23.0     1340      0   -8.000       PASS  assembly frame, 234 flat verts at z=-8.0
+07_wrist_pitch_roll_bracket.stl              38.0 x   42.8 x  47.5     1080      0   -8.000       PASS  assembly frame, 108 flat verts at z=-8.0
+08_gripper_body_and_cam_mount.stl            44.0 x   42.0 x  45.0     1084      0   -4.100       PASS  assembly frame, 18 flat verts at z=-4.1
+09_gripper_geared_fingers_pair.stl           59.0 x   47.8 x   6.0      720      0    0.000       PASS  seated on z=0
+10_cable_clips_and_electronics_tray.stl      72.0 x   78.0 x   8.0     1420      0    0.000       PASS  seated on z=0
+11_mobile_rover_chassis.stl                 146.0 x  111.0 x  25.0     2000      0    0.000       PASS  seated on z=0
+12_drive_wheels_and_caster.stl               48.0 x  108.0 x  26.5     3548      0    0.000       PASS  seated on z=0
+--------------------------------------------------------------------------------------------------------
+Degen = zero-area triangles. 05/06/07/08 are exported in the assembly frame, so
+their origin is a joint axis and they start below z = 0: load them, then use the
+slicer's drop-to-bed. It lands on the flat face listed above, never on a curve.
+
+========================================================================================================
+  2. ROVER BOLT INTERFACE - MEASURED FROM THE MESH BYTES
+========================================================================================================
+Declared: 4x M3 on a bolt circle of radius 36.0 mm at angles (45.0, 135.0, 225.0, 315.0) deg
+
+Part                                 Feature band          Angle  Mean r (mm)  Verts   r error
+--------------------------------------------------------------------------------------------------------
+11_mobile_rover_chassis.stl          bosses, z 20..25        45d        36.03    294    +0.03
+11_mobile_rover_chassis.stl          bosses, z 20..25       135d        36.03    294    +0.03
+11_mobile_rover_chassis.stl          bosses, z 20..25       225d        36.03    294    +0.03
+11_mobile_rover_chassis.stl          bosses, z 20..25       315d        36.03    294    +0.03
+03_base_lower_slewing_ring.stl       nut rings, z 0..2.6      45d        36.07    498    +0.07
+03_base_lower_slewing_ring.stl       nut rings, z 0..2.6     135d        36.07    498    +0.07
+03_base_lower_slewing_ring.stl       nut rings, z 0..2.6     225d        36.07    498    +0.07
+03_base_lower_slewing_ring.stl       nut rings, z 0..2.6     315d        36.07    498    +0.07
+
+========================================================================================================
+  3. DECLARED MATING INTERFACES - SOURCE-LEVEL AGREEMENT, NOT A FIT TEST
+========================================================================================================
+Interface                  Part A                                    Value How you verify it for real
+--------------------------------------------------------------------------------------------------------
+Rover bolt circle          11_mobile_rover_chassis.stl            36.00 mm calipers across opposite bolts
+Rover bolt pattern         11_mobile_rover_chassis.stl             4.00 count screws must drop through all four without reaming
+Rover bolt clearance hole  11_mobile_rover_chassis.stl             3.40 mm M3 screw drops through cleanly
+Rover nut trap             03_base_lower_slewing_ring.stl          5.90 mm press your own nut in; measure it first
+Rover nut trap depth       03_base_lower_slewing_ring.stl          2.60 mm nut must sit flush or below the plate underside
+J2 straddle gap            05_upper_arm_link_80mm.stl              0.60 mm feeler gauge between clevis and turret
+J3 straddle gap            06_forearm_link_75mm.stl                0.60 mm feeler gauge between clevis and arm
+J4 straddle gap            07_wrist_pitch_roll_bracket.stl         0.60 mm feeler gauge between bracket and forearm
+J2 spline axis             04_base_upper_turret_j2.stl             0.00 mm sweep the joint
+J3 spline axis             05_upper_arm_link_80mm.stl              0.00 mm sweep the joint
+J4 spline axis             06_forearm_link_75mm.stl                0.00 mm sweep the joint
+J5 spline axis             07_wrist_pitch_roll_bracket.stl         0.00 mm sweep the joint
+Passive pin                05_upper_arm_link_80mm.stl              6.60 mm pin spins freely with no wobble
+--------------------------------------------------------------------------------------------------------
+Both halves of every pair are built from these same constants, so the MODELS agree.
+Agreement in source is NOT evidence that two printed parts fit.
+
+========================================================================================================
+  4. WIRE LENGTH ESTIMATES  (UNVERIFIED - MEASURE YOUR OWN BUILD)
+========================================================================================================
+Joint / Sensor                 Destination    Wire                   Slack loop
+--------------------------------------------------------------------------------------------------------
+J1 Base Yaw (MG996R)           PCA9685 Ch 0   250 mm stock           35 mm loop in base turret
+J2 Shoulder Pitch (MG996R)     PCA9685 Ch 1   250 mm stock           45 mm loop across J1->J2
+J3 Elbow Pitch (MG996R)        PCA9685 Ch 2   250 mm + 150 mm ext    40 mm loop over J2 bridge
+J4 Wrist Pitch (MG90S)         PCA9685 Ch 3   250 mm + 300 mm ext    35 mm loop over J3 pivot
+J5 Wrist Roll (MG90S)          PCA9685 Ch 4   250 mm + 300 mm ext    45 mm helical loop for +-90 roll
+J6 Claw Gripper (MG90S)        PCA9685 Ch 5   250 mm + 350 mm ext    45 mm helical loop with J5
+Left drive servo (CR)          PCA9685 Ch 6   250 mm + 100 mm ext    40 mm service loop under deck
+Right drive servo (CR)         PCA9685 Ch 7   250 mm + 100 mm ext    40 mm service loop under deck
+HC-SR04 ultrasonic             ESP32 18/19    200 mm + 300 mm ext    50 mm loop behind bumper
+2x TCRT5000 cliff sensors      ESP32 25/26    200 mm + 300 mm ext    50 mm loop per bracket stem
+Eye-in-hand USB camera         Laptop USB     custom soft USB cable  50 mm wrist loop + base strain relief
+
+========================================================================================================
+  RESULT
+========================================================================================================
+PASS: every part is a structurally valid binary STL, seats on the bed, fits a
+180 mm plate, and carries the declared rover bolt features.
+
+This still does NOT mean the assembly works. Before printing a functional arm:
+  * Inspect cross-sections in your slicer; these meshes never subtract material.
+  * Print 00_tolerance_test_coupon.stl and test-fit a real servo and a real nut.
+  * For the rover, print the chassis and caster first and test-fit the drivetrain
+    on a FLOOR in a contained area with the arm stowed - never on a desk edge.
+========================================================================================================
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: PASS
+
+$ python3 src/phase2_mechanical/verify_assembly_fit.py
+------------------------------------------------------------------------------------------------
+
+######################################################################################################################
+#  B.U.D.-E  PHASE 2  ASSEMBLY-FIT AUDIT
+#  Every number below is measured from cad/stl/*.stl, not restated from the code.
+######################################################################################################################
+
+======================================================================================================================
+  1. MESH INTEGRITY - read straight from the binary STL bytes
+======================================================================================================================
+file                                         tris  degen    z_min  flat vtx   max dim
+  z_min may be negative: the STLs are in the ASSEMBLY frame, where a joint axis is
+  the origin. Let your slicer drop the part to the bed; every part has a flat base.
+----------------------------------------------------------------------------------------------------------------------
+00_tolerance_test_coupon.stl                  380      0    0.000       354      84.0
+01_desk_c_clamp_frame.stl                     400      0    0.000       600      80.0
+02_desk_c_clamp_screw_and_pad.stl             384      0    0.000       432      61.0
+03_base_lower_slewing_ring.stl               2104      0    0.000       570     120.0
+04_base_upper_turret_j2.stl                  1204      0    0.000       576      77.0
+05_upper_arm_link_80mm.stl                   1536      0   -8.000       234     126.5
+06_forearm_link_75mm.stl                     1340      0   -8.000       234     102.0
+07_wrist_pitch_roll_bracket.stl              1080      0   -8.000       108      47.5
+08_gripper_body_and_cam_mount.stl            1084      0   -4.100        18      45.0
+09_gripper_geared_fingers_pair.stl            720      0    0.000      1080      59.0
+10_cable_clips_and_electronics_tray.stl      1420      0    0.000      1362      78.0
+11_mobile_rover_chassis.stl                  2000      0    0.000       624     146.0
+12_drive_wheels_and_caster.stl               3548      0    0.000       432     108.0
+
+  Solid volume. `union` is analytic containment on the DECLARED primitives, so
+  overlaps are not double counted; `signed` is the triangle-soup figure, which is
+  an upper bound where primitives overlap. Printed grams will be lower:
+  file                                          union mm3   signed mm3    overlap     grams
+----------------------------------------------------------------------------------------------------------------------
+00_tolerance_test_coupon.stl                      18468        18408          0       23 g
+01_desk_c_clamp_frame.stl                         45216        58707      13491       56 g
+02_desk_c_clamp_screw_and_pad.stl                 16088        16215        127       20 g
+03_base_lower_slewing_ring.stl                   111662       114344       2682      138 g
+04_base_upper_turret_j2.stl                       45296        49604       4308       56 g
+05_upper_arm_link_80mm.stl                        28856        30016       1160       36 g
+06_forearm_link_75mm.stl                          21039        22887       1848       26 g
+07_wrist_pitch_roll_bracket.stl                   16111        16831        720       20 g
+08_gripper_body_and_cam_mount.stl                 31620        33940       2320       39 g
+09_gripper_geared_fingers_pair.stl                 6289         6889        600        8 g
+10_cable_clips_and_electronics_tray.stl           18684        19926       1242       23 g
+11_mobile_rover_chassis.stl                      128710       136769       8060      160 g
+12_drive_wheels_and_caster.stl                    15555        20846       5292       19 g
+----------------------------------------------------------------------------------------------------------------------
+  Sum of union volumes: 504 cm3 (624 g of 100% solid PLA, before infill).
+  Each part was sampled at its own adaptive grid (1-3 mm, chosen so the thinnest
+  declared feature spans at least three voxels).
+  Note: the mesh_audit ray-parity volume is NOT used here. Parity is unsound where
+  primitives overlap (two covers give an even count), which is most of these parts.
+
+======================================================================================================================
+  2. CAVITY PROBES - every pocket must be AIR, every wall must be MATERIAL
+  `covers` = how many declared primitives contain the point (0 means air).
+  `ray` = the parity count of the STL's own triangles along +Z from the point.
+======================================================================================================================
+part                                     probe                                       want  covers  ray  result
+----------------------------------------------------------------------------------------------------------------------
+00_tolerance_test_coupon.stl             MG996R test pocket                           air       0 even    PASS
+00_tolerance_test_coupon.stl             MG90S test pocket                            air       0 even    PASS
+00_tolerance_test_coupon.stl             6.6 mm pivot bore                            air       0 even    PASS
+00_tolerance_test_coupon.stl             M3 hex trap                                  air       0 even    PASS
+00_tolerance_test_coupon.stl             coupon base plate                       material       1  odd    PASS
+01_desk_c_clamp_frame.stl                clamping screw through-bore                  air       0 even    PASS
+01_desk_c_clamp_frame.stl                jaw material beside the bore            material       1  odd    PASS
+03_base_lower_slewing_ring.stl           J1 servo cavity                              air       0 even    PASS
+03_base_lower_slewing_ring.stl           J1 cavity floor                         material       1  odd    PASS
+03_base_lower_slewing_ring.stl           E-stop switch cavity                         air       0 even    PASS
+03_base_lower_slewing_ring.stl           E-stop collar bore                           air       0 even    PASS
+03_base_lower_slewing_ring.stl           E-stop wall                             material       1  odd    PASS
+03_base_lower_slewing_ring.stl           rover nut trap                               air       0 even    PASS
+03_base_lower_slewing_ring.stl           plate material at the core              material       1  odd    PASS
+04_base_upper_turret_j2.stl              J2 servo cavity                              air       0 even    PASS
+04_base_upper_turret_j2.stl              J2 horn bore in the driven wall              air       0 even    PASS
+04_base_upper_turret_j2.stl              J2 passive bore in the bearing wall          air       0 even    PASS
+04_base_upper_turret_j2.stl              slewing disk bore                            air       0 even    PASS
+04_base_upper_turret_j2.stl              bearing wall material                   material       1  odd    PASS
+05_upper_arm_link_80mm.stl               J2 clevis void on the axis                   air       0 even    PASS
+05_upper_arm_link_80mm.stl               proximal passive bore                        air       0 even    PASS
+05_upper_arm_link_80mm.stl               proximal horn bore                           air       0 even    PASS
+05_upper_arm_link_80mm.stl               link flank material                     material       1  odd    PASS
+05_upper_arm_link_80mm.stl               J3 servo cavity                              air       0 even    PASS
+05_upper_arm_link_80mm.stl               J3 horn bore                                 air       0 even    PASS
+06_forearm_link_75mm.stl                 J3 clevis void on the axis                   air       0 even    PASS
+06_forearm_link_75mm.stl                 proximal horn bore                           air       0 even    PASS
+06_forearm_link_75mm.stl                 J4 servo cavity                              air       0 even    PASS
+06_forearm_link_75mm.stl                 J4 horn bore                                 air       0 even    PASS
+07_wrist_pitch_roll_bracket.stl          J5 servo cavity                              air       0 even    PASS
+07_wrist_pitch_roll_bracket.stl          J5 shaft bore in the ceiling                 air       0 even    PASS
+07_wrist_pitch_roll_bracket.stl          J4 clevis void on the axis                   air       0 even    PASS
+08_gripper_body_and_cam_mount.stl        J6 servo cavity                              air       0 even    PASS
+08_gripper_body_and_cam_mount.stl        J6 shaft bore in the ceiling                 air       0 even    PASS
+08_gripper_body_and_cam_mount.stl        camera lens bore                             air       0 even    PASS
+08_gripper_body_and_cam_mount.stl        camera bezel material                   material       1  odd    PASS
+11_mobile_rover_chassis.stl              left drive servo channel                     air       0 even    PASS
+11_mobile_rover_chassis.stl              right drive servo channel                    air       0 even    PASS
+11_mobile_rover_chassis.stl              base bolt clearance hole                     air       0 even    PASS
+11_mobile_rover_chassis.stl              deck material                           material       1  odd    PASS
+11_mobile_rover_chassis.stl              side plate material                     material       1  odd    PASS
+12_drive_wheels_and_caster.stl           wheel hub bore                               air       0 even    PASS
+12_drive_wheels_and_caster.stl           wheel rim band                          material       1  odd    PASS
+12_drive_wheels_and_caster.stl           caster cup bore                              air       0 even    PASS
+12_drive_wheels_and_caster.stl           caster flange material                  material       1  odd    PASS
+09_gripper_geared_fingers_pair.stl       left finger hub bore                         air       0 even    PASS
+09_gripper_geared_fingers_pair.stl       left finger beam                        material       1  odd    PASS
+----------------------------------------------------------------------------------------------------------------------
+  Why the parity column alone is not enough: these parts are built as OVERLAPPING
+  primitives, and a point under two covers crosses the ray an even number of times,
+  so parity would report air for real material. Parity is therefore used only as a
+  writer cross-check (odd must imply covered), and the declared-primitive occupancy
+  above is what actually proves a cavity is empty.
+
+======================================================================================================================
+  3. COAXIALITY - every bore's own vertex ring, measured against its declared axis
+     The ring's centroid IS the bore centre, so this measures the model rather than
+     restating the constant. A pitch/roll bore runs along Y; a yaw bore runs along Z.
+======================================================================================================================
+part                                     joint  feature                                  declared        measured     error  verts
+----------------------------------------------------------------------------------------------------------------------
+03_base_lower_slewing_ring.stl           J1     BB slewing race inner bore         (   0.00,    0.00) (  -0.00,   -0.00)   0.0000    576   PASS
+03_base_lower_slewing_ring.stl           J1     E-stop collar bore                 (  57.50,    0.00) (  57.50,   -0.00)   0.0000     64   PASS
+04_base_upper_turret_j2.stl              J2     passive bore in the bearing wall   (   0.00,   30.00) (  -0.00,   30.00)   0.0000     64   PASS
+04_base_upper_turret_j2.stl              J2     horn bore in the driven wall       (   0.00,   30.00) (   0.00,   30.00)   0.0000     64   PASS
+05_upper_arm_link_80mm.stl               J2     passive bore in the clevis flank   (   0.00,    0.00) (   0.00,    0.00)   0.0000     64   PASS
+05_upper_arm_link_80mm.stl               J2     horn bore in the clevis flank      (   0.00,    0.00) (   0.00,   -0.00)   0.0000     64   PASS
+05_upper_arm_link_80mm.stl               J3     passive bore in the bearing wall   (  80.00,   12.00) (  80.00,   12.00)   0.0000     64   PASS
+05_upper_arm_link_80mm.stl               J3     horn bore in the driven wall       (  80.00,   12.00) (  80.00,   12.00)   0.0000     64   PASS
+06_forearm_link_75mm.stl                 J3     passive bore in the clevis flank   (   0.00,    0.00) (   0.00,    0.00)   0.0000     64   PASS
+06_forearm_link_75mm.stl                 J3     horn bore in the clevis flank      (   0.00,    0.00) (   0.00,   -0.00)   0.0000     64   PASS
+06_forearm_link_75mm.stl                 J4     horn bore in the driven wall       (  75.00,    5.00) (  75.00,    5.00)   0.0000     64   PASS
+07_wrist_pitch_roll_bracket.stl          J4     passive bore in the clevis flank   (   0.00,    0.00) (   0.00,    0.00)   0.0000     64   PASS
+07_wrist_pitch_roll_bracket.stl          J4     horn bore in the clevis flank      (   0.00,    0.00) (  -0.00,   -0.00)   0.0000     64   PASS
+07_wrist_pitch_roll_bracket.stl          J5     shaft bore in the ceiling plate    (  11.00,    0.00) (  11.00,   -0.00)   0.0000     64   PASS
+08_gripper_body_and_cam_mount.stl        J6     shaft bore in the ceiling plate    (  12.00,    0.00) (  12.00,   -0.00)   0.0000     64   PASS
+08_gripper_body_and_cam_mount.stl        J6     driven claw pivot bore             (  12.00,  -11.00) (  12.00,  -11.00)   0.0000    144   PASS
+08_gripper_body_and_cam_mount.stl        J6     passive claw pivot bore            (  12.00,   11.00) (  12.00,   11.00)   0.0000    144   PASS
+09_gripper_geared_fingers_pair.stl       J6     driven finger hub bore             (   0.00,  -11.00) (   0.00,  -11.00)   0.0000    288   PASS
+09_gripper_geared_fingers_pair.stl       J6     coupled finger hub bore            (   0.00,   11.00) (  -0.00,   11.00)   0.0000    288   PASS
+11_mobile_rover_chassis.stl              axle   left axle bore in the side plate   (   0.00,   12.00) (   0.00,   12.00)   0.0000     64   PASS
+11_mobile_rover_chassis.stl              axle   right axle bore in the side plate  (   0.00,   12.00) (  -0.00,   12.00)   0.0000     32   PASS
+11_mobile_rover_chassis.stl              base   M3 clearance hole in the deck      (  25.46,   25.46) (  25.46,   25.46)   0.0000     64   PASS
+12_drive_wheels_and_caster.stl           axle   left wheel hub bore                (   0.00,  -30.00) (  -0.00,  -30.00)   0.0000    384   PASS
+12_drive_wheels_and_caster.stl           axle   right wheel hub bore               (   0.00,   30.00) (   0.00,   30.00)   0.0000    384   PASS
+12_drive_wheels_and_caster.stl           caster ball caster cup bore               (   0.00,    0.00) (   0.00,   -0.00)   0.0000    432   PASS
+----------------------------------------------------------------------------------------------------------------------
+  Tolerance 0.020 mm, which is the model's own placement precision. Non-zero here
+  would mean the ring window caught geometry that is not the bore.
+
+======================================================================================================================
+  4. SERVO POCKETS - rays fired at the inner walls from inside each cavity
+     The servo case centre is measured from the wall hits, then compared with the
+     position that puts the output spline exactly on the joint axis.
+======================================================================================================================
+part                                     joint   measured cavity centre     declared  spline err   X span   Y span    floor
+----------------------------------------------------------------------------------------------------------------------
+03_base_lower_slewing_ring.stl           J1    (  10.35,    0.00,   16.00)        10.35      0.0013    41.60    20.90     5.00
+04_base_upper_turret_j2.stl              J2    ( -10.35,  -20.75,   30.00)       -10.35      0.0013      nan    38.50    20.00
+05_upper_arm_link_80mm.stl               J3    (  69.65,  -18.75,   12.00)        69.65      0.0013      nan    36.50     2.00
+06_forearm_link_75mm.stl                 J4    (  69.40,  -12.25,    5.00)        69.40      0.0013    23.70    23.50    -1.10
+07_wrist_pitch_roll_bracket.stl          J5    (   5.40,    0.00,   24.00)         5.40      0.0013      nan    13.10      nan
+08_gripper_body_and_cam_mount.stl        J6    (   6.40,    0.00,   12.00)         6.40      0.0013    23.70    13.10     5.90
+----------------------------------------------------------------------------------------------------------------------
+  `spline err` is the headline number: the distance between the servo case centre
+  the mesh actually has and the one that puts the output spline on the joint axis.
+
+======================================================================================================================
+  5. STRADDLE GAPS - parent outer span and child inner span, from the bore rings
+     A hobby servo's spline sits at the top of its case, so the case hangs on ONE
+     side of the joint axis and the straddle is deliberately asymmetric.
+======================================================================================================================
+joint  parent outer (mm)   child inner (mm)   gap (mm)  declared  result
+----------------------------------------------------------------------------------------------------------------------
+J2                44.000             44.600      0.600      0.60    PASS
+J3                42.000             42.600      0.600      0.60    PASS
+J4                29.000             29.600      0.600      0.60    PASS
+----------------------------------------------------------------------------------------------------------------------
+  The ring measurement looks only at vertices within +/-18% of the nominal bore
+  radius, so it reads the bore itself and not the surrounding plate.
+
+======================================================================================================================
+  6. ROVER INTERFACE - 4x M3 at r = 36 mm, measured in both halves
+======================================================================================================================
+part                                     feature                         measured centre   radius    angle
+----------------------------------------------------------------------------------------------------------------------
+03_base_lower_slewing_ring.stl           M3 hex trap                  (  25.46,   25.46)   36.000     45.0
+03_base_lower_slewing_ring.stl           M3 hex trap                  ( -25.46,   25.46)   36.000    135.0
+03_base_lower_slewing_ring.stl           M3 hex trap                  ( -25.46,  -25.46)   36.000    225.0
+03_base_lower_slewing_ring.stl           M3 hex trap                  (  25.46,  -25.46)   36.000    315.0
+11_mobile_rover_chassis.stl              M3 clearance hole            (  25.46,   25.46)   36.000     45.0
+11_mobile_rover_chassis.stl              M3 clearance hole            ( -25.46,   25.46)   36.000    135.0
+11_mobile_rover_chassis.stl              M3 clearance hole            ( -25.46,  -25.46)   36.000    225.0
+11_mobile_rover_chassis.stl              M3 clearance hole            (  25.46,  -25.46)   36.000    315.0
+12_drive_wheels_and_caster.stl           wheel at y=-30                       tyre / hub    24.00     2.70
+12_drive_wheels_and_caster.stl           wheel at y=+30                       tyre / hub    24.00     2.70
+11_mobile_rover_chassis.stl              axle bore in the side plate   (  -0.00,   12.00)        -        -
+----------------------------------------------------------------------------------------------------------------------
+  Wheel radius 24.0 mm - axle height 12.0 mm = 12.0 mm ground gap.
+  Servo body 23 mm wide on its side needs its top face at z <= 20 mm: 12 + 6.1 = 18.1 mm. Clear.
+  An 8.0 mm gap would put the servo top at 22.1 mm, i.e. 2.1 mm INSIDE the deck.
+
+======================================================================================================================
+  MASTER SCORECARD - PHASE 2 ASSEMBLY FIT
+======================================================================================================================
+  mesh        52 / 52  checks   PASS
+  volume      13 / 13  checks   PASS
+  probes      47 / 47  checks   PASS
+  coaxial     25 / 25  checks   PASS
+  pockets     36 / 36  checks   PASS
+  straddle    12 / 12  checks   PASS
+  rover       19 / 19  checks   PASS
+----------------------------------------------------------------------------------------------------------------------
+  TOTAL      204 / 204 checks   PASS
+======================================================================================================================
+
+  WHAT THIS DOES NOT PROVE
+   * Nothing here has been printed, fitted, loaded or dropped. A self-consistent
+     CAD model is not an assembled robot.
+   * Every servo dimension is a datasheet declaration. Open-frame hobby servos
+     vary by a millimetre between sellers. Calipers decide.
+   * Printed-pin and printed-thread strength are unmeasured.
+   * The MG996R's mounting ears are NOT modelled in the pockets. The case is
+     located by its sides and the pocket floor; take the axial 1.0 mm slack up
+     with the horn screws, or add a strap over the case.
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: 204 / 204
+
+
+################################################################################################
+#  STEP 3 — Phase 3 — Electronics pinout, voltage drop and the ESP32 driver
+################################################################################################
+#  Wiring table vs config vs firmware, rail arithmetic, then the host-side serial driver.
+
+$ python3 src/phase3_electronics/power_and_wiring_verifier.py
+------------------------------------------------------------------------------------------------
+==============================================================================
+  PHASE 3 — POWER, WIRING AND PINOUT VERIFICATION
+  Model arithmetic only. Nothing here has been powered or measured.
+==============================================================================
+  PASS  the firmware defines all seven GPIOs
+           SDA=21, SCL=22, OE=4, cliff_left=25, cliff_right=26, sonar_trig=18, sonar_echo=19
+  PASS  all seven GPIOs agree across the wiring table, the config and the firmware
+           SDA 21 / SCL 22 / OE 4 / cliff 25,26 / sonar 18,19
+  PASS  the wheels are on PCA9685 channels 6 and 7 with 1500 us neutral
+           left=6 right=7 neutral=1500 in the firmware; config wheel_left_ch=6.0 wheel_right_ch=7.0
+  PASS  the config names the same wheel channels as the firmware
+           a supervisor driving channels the firmware never reads fails silently
+  PASS  the config quotes the same recoil and timeout figures as the firmware
+           350 ms recoil, 500 ms host-silence timeout
+  PASS  the firmware uses PCA9685 0x40 and INA219 0x41
+           0x40 / 0x41
+  PASS  the wiring table tells you to expect those addresses
+           the doc also warns that the INA219 address depends on its A0 jumper
+  PASS  the arm alone can demand more current than the 5 A supply can give
+           all six arm servos stalled = 10.5 A vs a 5 A supply: it will brown out (not trip) - keep moves gentle and never stall two proximal servos at once
+  PASS  the rover's two drives fit inside the supply with headroom
+           2.0 A stalled, leaving 3.0 A: the rover build is the one you can actually hold at stall
+  PASS  a copper gauge carries 5 A over 1 m and still leaves 4.8 V at the servo
+           20 AWG: 333 mV; 22 AWG: 529 mV (ampacity too low); 24 AWG: 842 mV (ampacity too low); 26 AWG: 1346 mV (ampacity too low)  -> use 20 AWG or heavier
+  PASS  22 AWG is NOT enough for the full 5 A rail
+           22 AWG chassis wiring is good for about 3 A; the doc quotes a 22 AWG example, which is fine for one servo, not for six
+  PASS  the doc warns that the stock 0.1 ohm INA219 shunt is not a 5 A part
+           at 5 A that shunt drops 0.50 V and burns 2.5 W - it will desolder itself
+  PASS  the configured trip current is inside the supply's capability
+           the config trips the arm at 3.2 A; a trip above the supply rating would never fire before brownout
+  PASS  the e-stop is a latching NC switch in the 6 V servo rail
+           NC means a broken wire or an unplugged switch also kills the rail
+  PASS  the OE pin has a documented pull-up so a reset leaves the servos off
+           OE HIGH = tri-stated; a floating OE at power-up is a random pose
+  PASS  the doc warns against putting 6 V on PCA9685 VCC or ESP32 3V3
+           the logic side is 3.3 V; the servo side is 6 V, and only V+ sees 6 V
+  PASS  the HC-SR04 ECHO pin is flagged for level shifting
+           many boards drive ECHO at 5 V, which is out of spec for an ESP32 GPIO
+  PASS  a bulk capacitor across the servo rail is specified
+           stall transients are what reset the ESP32; the capacitor absorbs them
+------------------------------------------------------------------------------
+  VERDICT: PASS — 18 / 18 checks
+  The doc, the config and the firmware describe the same robot, and the rail
+  arithmetic has headroom. That is a consistency result, not a measurement:
+  use a current-limited supply and a fuse for the first power-up.
+==============================================================================
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: VERDICT: PASS
+
+$ python3 src/phase3_electronics/esp32_arm_driver.py --dry-run --ping --home --drive 0.5 0.5 --stop
+------------------------------------------------------------------------------------------------
+==============================================================================
+  B.U.D.-E ESP32 driver — Phase 3
+==============================================================================
+  6 arm joints loaded from config/robot_config.yaml
+  ch0=base_yaw, ch1=shoulder_pitch, ch2=elbow_pitch, ch3=wrist_pitch, ch4=wrist_roll, ch5=gripper
+  firmware agrees with this driver (channels 6/7, 8 channels, guarded wheel path)
+  DRY RUN — no serial port opened, no hardware addressed.
+------------------------------------------------------------------------------
+  TX  PING
+      5 bytes on the wire -> b'PING\n'
+  TX  W 1410 1590
+      12 bytes on the wire -> b'W 1410 1590\n'
+  TX  W 1500 1500
+      12 bytes on the wire -> b'W 1500 1500\n'
+  TX  G 1500 0:1500,1:1250,2:1944,3:1221,4:1500,5:1393
+      49 bytes on the wire -> b'G 1500 0:1500,1:1250,2:1944,3:1221,4:1500,5:1393\n'
+------------------------------------------------------------------------------
+  4 frame(s) prepared, nothing sent.
+  What the firmware does with them:
+    W  -> both wheel channels in ONE I2C transaction; forward is refused while a
+          cliff is tripped, and the wheels return to 1500 us if this driver goes
+          quiet for 500 ms
+    M  -> immediate; G -> cosine-blended on the ESP32 over the given duration
+    the cliff reflex runs on the ESP32 (GPIO 25/26, < 5 ms) regardless of what
+    this laptop is doing, including being unplugged
+  Reminder: the physical e-stop in the 6 V rail is the only thing that is guaranteed
+  to stop this robot. `W 1500 1500` is a request, not a guarantee.
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: ran
+
+
+################################################################################################
+#  STEP 4 — Phase 4 — URDF model and the pick-and-handover simulation
+################################################################################################
+#  The kinematic model checked against the solver, then a full task run offline.
+
+$ python3 src/phase4_simulation/verify_urdf_model.py
+------------------------------------------------------------------------------------------------
+============================================================================
+  PHASE 4 — URDF MODEL VERIFICATION
+  Schematic model only: collision geometry is NOT CAD or a safety guarantee
+============================================================================
+  PASS  robot is named bude_prototype
+           name='bude_prototype'
+  PASS  the kinematic chain runs base_link -> tcp_link unbroken
+           7 links, 6 joints
+  PASS  every joint offset matches the configured link length (5 lengths)
+           55 / 80 / 75 / 22 / 48 mm
+  PASS  axes follow the convention: yaw +Z, every pitch +Y, roll +Z
+           a wrong sign here folds the arm backwards while every other check still passes
+  PASS  joint limits agree with config/robot_config.yaml (degrees -> radians)
+           5 revolute joints
+  PASS  the URDF chain and the analytic solver agree on the TCP (6 poses)
+           worst disagreement 0.00 mm at q=[30.0, -20.0, 55.0, -35.0, 40.0] (tolerance 1.5 mm)
+  PASS  kinematics.forward() reports MILLIMETRES (the convention the repo assumes)
+           forward(all zeros).z = 280.0 -> that must read as 280.0 mm, not 0.280 m
+  PASS  the folded link stack is 280 mm above the base
+           280.0 mm = the 55+80+75+22+48 mm stack
+  PASS  every link has a positive mass and an inertia matrix
+           7 links
+  PASS  total modelled mass is in the printed-arm ballpark
+           556 g across all links
+----------------------------------------------------------------------------
+  VERDICT: PASS — 10 / 10 checks
+  The URDF is schema-valid, matches the config, and the chain it describes is
+  the same robot the control code plans for. That is a consistency check, NOT a
+  physical one: no version of this model has been loaded onto real hardware.
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: VERDICT: PASS
+
+$ python3 src/phase4_simulation/sim_runner.py --backend kinematic
+------------------------------------------------------------------------------------------------
+kinematic J1 +15 deg: TCP (10.6, 2.8, 270.2) mm
+kinematic J1 -15 deg: TCP (10.6, -2.8, 270.2) mm
+kinematic J1 +0 deg: TCP (11.0, 0.0, 270.2) mm
+kinematic example: 58 checked centreline samples, 1.12s
+NOT a dynamics/collision/real-hardware validation.
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: ran
+
+
+################################################################################################
+#  STEP 5 — Phase 5 — FK, 5-DOF IK, minimum-jerk trajectories and collision guard
+################################################################################################
+#  The control core: reachability, the quintic profile, keep-out volumes, and the unfinished ROS 2 bridge.
+
+$ python3 src/phase5_control/kinematics.py
+------------------------------------------------------------------------------------------------
+FK/IK round trip (0, -15, 40, -25, 0) => (10.99, 0.0, 270.25)
+FK/IK round trip (20, 45, 35, 0, 15) => (187.34, 68.19, 136.75)
+FK/IK round trip (-25, 55, 50, 25, -30) => (173.65, -80.97, 36.48)
+unreachable target raises: target outside two-link wrist workspace
+pitch adaptation found 6 branch(es); nearest achieved pitch -60.0 deg (asked for -60.0)
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: ran
+
+$ python3 src/phase5_control/trajectory_and_collision.py
+------------------------------------------------------------------------------------------------
+================================================================================================
+  PHASE 5 - MINIMUM-JERK PLANNER AND SCHEMATIC KEEP-OUT SELF-TEST
+  These are ANALYTIC model checks. No mesh collision, no dynamics, no hardware.
+================================================================================================
+1. valid move          : 114 samples over 1.12s | peak speeds (25.0, 25.0, 8.3, 16.7, 33.3) deg/s | min TCP z 262.2 mm | limiting joint J2
+2. endpoints exact     : start and goal reproduced to <1e-9 deg, time monotonic
+3. desk crash         : REJECTED -> goal pose rejected: desk floor: TCP z=-24.9 < 10 mm | desk floor: palm z=-20.6 < 15 mm | desk floor: wrist z=-12.7 < 15 mm | turret cylinder: TCP r=17.3 < 48 mm below z=75 mm | turret cylinder: palm r=41.9 < 48 mm below z=75 mm
+3. joint limit        : REJECTED -> goal pose rejected: J1=100.0 deg outside [-90.0,90.0]
+4. endpoints pass alone: start TCP z=77.5 mm OK, goal TCP z=11.9 mm OK
+   whole path          : REJECTED -> path rejected at sample 391/705 (t=3.91s, tau=0.555): desk floor: TCP z=9.8 < 10 mm
+5. e-stop geometry     : the farthest housing corner is 36.4 mm from the sphere centre, so the brief's r=30 mm sphere sits +6.4 mm inside it
+                         the box test is the default for that reason
+6. loop travel         : 200 mm/s at 100 Hz = 2.0 mm per period. This is ONE term of a stopping distance;
+                         sensor, transport, deceleration and braking are all unmeasured.
+================================================================================================
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: ran
+
+$ python3 src/phase5_control/ros2_moveit_bridge.py --dry-run
+------------------------------------------------------------------------------------------------
+================================================================================================================
+  PHASE 5 - CARTESIAN PICK AND HANDOVER BRIDGE (schematic model, offline)
+  No hardware driver exists in this repository. No motor has been commanded.
+  DRY RUN: the analytic 5-DOF solver plans this, not MoveIt 2 and not a servo.
+================================================================================================================
+[STAGE 0] single-joint J1 -> +20.0 deg : 109 samples over 1.07s | peak speeds (35.0, 0.0, 0.0, 0.0, 0.0) deg/s | min TCP z 270.2 mm | limiting joint J1
+
+----------------------------------------------------------------------------------------------------------------
+#   Stage                    Target (mm)            Solved TCP (mm)          Time    Min Z    I/mA Result
+----------------------------------------------------------------------------------------------------------------
+1   Approach pre-grasp       (150, 0, 67)           (150.0, 0.0, 67.0)      3.22s    67.0     980 PASS
+2   Descend to grasp         (150, 0, 12)           (150.0, 0.0, 12.0)      1.44s    12.0     980 PASS
+3   Close claw               (150, 0, 12)           (150.0, 0.0, 12.0)      0.90s    12.0     980 GRASPED (declared model)
+    note: threshold is a DECLARED placeholder; measure it per object
+4   Lift clear               (150, 0, 82)           (150.0, 0.0, 82.0)      2.12s    12.0     980 PASS
+5   Present to handover      (140, 0, 205)          (139.9, 0.0, 205.2)     2.49s    82.0     980 PASS
+6   Open claw + nod          (140, 0, 205)          (139.9, 0.0, 205.2)     0.65s   205.2     520 RELEASED
+    note: expressive nod is a joint-space gesture; keep it slow near people
+----------------------------------------------------------------------------------------------------------------
+'Solved TCP' is the FORWARD KINEMATICS of the planned joints, not a measurement.
+'Min Z' is the lowest tool height the planner checked, from the analytic model.
+
+Next physical step is NOT this script. It is: one servo, unloaded, at a low
+speed, on a bench, with a rated power cutoff within reach. See docs/verification_status.md.
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: PASS
+
+
+################################################################################################
+#  STEP 6 — Phase 6 — Camera calibration model and mobile visual navigation
+################################################################################################
+#  Pinhole intrinsics, hand-eye offset, a synthetic round trip, and the drive policy.
+
+$ python3 src/phase6_perception/camera_and_hand_eye_calib.py
+------------------------------------------------------------------------------------------------
+NOMINAL design-model intrinsics (NOT a calibration):
+  fx = fy = 532.57 px at 640x480 and 62 deg HFOV
+  cx, cy = 320.0, 240.0
+
+Design-model camera pose at the home configuration:
+  origin (mm): [-19.01, 0.0, 227.25]
+
+Projection round-trip: 41 points, worst residual 2.930e-14 mm
+That number certifies the ALGEBRA only. A real camera needs real photos:
+  python src/phase6_perception/camera_and_hand_eye_calib.py calibrate \
+      --images 'calibration_photos/*.png' --square-mm <measured> \
+      --cols 9 --rows 6 --output camera_intrinsics.json
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: ran
+
+$ python3 src/phase6_perception/vision_mobile_navigator.py
+------------------------------------------------------------------------------------------------
+====================================================================================================
+  PHASE 6 - OFFLINE MOBILE POLICY HARNESS (no hardware, no camera, no serial port)
+====================================================================================================
+1. normal offline command        : (0.06, 0.1)
+   stale sensor data            : (0.0, 0.0)  STOP
+   left cliff reading           : (0.0, 0.0)  STOP
+   obstacle at 100 mm           : (0.0, 0.0)  STOP
+   e-stop released              : (0.0, 0.0)  STOP
+   arm not stowed               : (0.0, 0.0)  STOP
+   no target bearing            : (0.0, 0.0)  STOP
+   no obstacle distance         : (0.0, 0.0)  STOP
+
+2. cliff reflex, left edge only  : (-0.15, 0.15)   <- backs away AND turns
+   cliff reflex, both edges      : (-0.15, -0.15)
+
+3. declared latency budget       : 70 ms (declared values only; excludes servo slew, inertia and braking)
+
+4. PCA grasp roll, screwdriver   : +9.8 deg, elongation 81.8x, usable=True
+   PCA grasp roll, square blob   : +0.0 deg, elongation 1.00x, usable=False   <- must NOT align
+
+5. simulated approach to (520, 140) mm: arrived=True in 217 ticks, final pose (336, 87) mm, heading +16.1 deg
+   Policy works in simulation. Traction, braking, tipping and edge distance are
+   all UNMEASURED, so this says nothing about a real drive.
+====================================================================================================
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: ran
+
+
+################################################################################################
+#  STEP 7 — Phase 7 — Voice parser and the expressive personality gestures
+################################################################################################
+#  Six gestures as minimum-jerk keyframes, the deterministic intent parser, and the failure detector.
+
+$ python3 src/phase7_voice_personality/personality_engine.py
+------------------------------------------------------------------------------------------------
+B.U.D.-E Phase 7 personality engine self test
+  sample rate 100 Hz, 8 channels, min-jerk segments with zero velocity and acceleration at every keyframe
+  OK   curious_head_tilt               1.35 s  136 frames priority 3 speed x1
+  OK   affirmative_nod                 1.76 s  177 frames priority 2 speed x1.4
+  OK   sad_failed_grasp_droop          3.40 s  341 frames priority 2 speed x1
+  OK   excited_success_wiggle          2.10 s  211 frames priority 2 speed x1.5
+  OK   startled_cliff_recoil           1.95 s  196 frames priority 0 speed x2 wheels for 0.00..0.40 s
+  OK   idle_breathing_and_look_around  8.00 s  801 frames priority 3 speed x1
+  6 gestures, 18560 ms of scripted body language
+  PASS
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: PASS
+
+$ python3 src/phase7_voice_personality/voice_assistant.py --demo
+------------------------------------------------------------------------------------------------
+B.U.D.-E Phase 7 voice + personality demo (no microphone, no network)
+================================================================================================
+
+> bud-e, hand me the screwdriver
+    gesture affirmative_nod for 1.76 s (177 frames at 100 Hz)
+    arm stowed at home_perched (0.0, -45.0, 75.0, -60.0, 0.0, 0.0)
+    Phase 6 navigator: arrived=True after 546 ticks, final (861, 147) mm, heading +10.0 deg, 7.0 mm off the standoff
+    gesture excited_success_wiggle for 2.10 s (211 frames at 100 Hz)
+  -> FETCH_TOOL (0.90): Getting the screwdriver.
+
+> look at my hand
+    gesture curious_head_tilt for 1.35 s (136 frames at 100 Hz)
+    Phase 6 PCA hand-roll estimator armed; keep the hand in front of the camera at 150-400 mm
+  -> LOOK_AT_HAND (0.95): Watching your hand.
+
+> follow me
+    tick t=5.21 s cliff=clear -> wheels +0.040 / +0.120 = 1633 / 1900 us
+    tick t=5.41 s cliff=TRIPPED -> wheels +0.150 / -0.150 = 2000 / 1000 us
+    gesture startled_cliff_recoil for 1.95 s (196 frames at 100 Hz)
+    gesture idle_breathing_and_look_around for 8.00 s (801 frames at 100 Hz)
+    idle loop starts after 10 s of no commands
+  -> FOLLOW_ME (0.95): Coming after you, slowly.
+
+> stop
+    HALT at t=7.36 s: wheels 1500/1500 us, arm held at (0.0, -15.0, 40.0, -25.0, 0.0)
+  -> HALT (1.00): Stopping.
+
+> thank you
+    gesture excited_success_wiggle for 2.10 s (211 frames at 100 Hz)
+  -> PRAISE (0.90): Thank you!
+
+> go home
+    home_perched (0.0, -45.0, 75.0, -60.0, 0.0, 0.0); wheels to 1500 us; gesture machine idle
+  -> GO_HOME (0.90): Folding up and going to sleep.
+
+> make me a sandwich
+  -> UNKNOWN (0.00): I did not understand 'make me a sandwich'.
+
+================================================================================================
+  7 turns, 14 robot actions, all offline. The microphone was never opened.
+  Reality check: everything above ran in a simulator. No servo moved.
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: ran
+
+
+################################################################################################
+#  STEP 8 — Phase 8 — Safety supervisor, master acceptance suite and unit tests
+################################################################################################
+#  Six injected faults, then every phase re-checked as an assertion, then the tests.
+
+$ python3 src/phase8_safety_testing/safety_supervisor_and_logger.py --fault all --seconds 6 --no-log
+------------------------------------------------------------------------------------------------
+====================================================================================================
+  PHASE 8 - SAFETY SUPERVISOR, SIX FAULT INJECTIONS (simulated sensors)
+====================================================================================================
+  PASS  over-current 2900 mA   backed off home at 2.160 s (limit 2.150 s)  latency 160.0 ms
+  PASS  missed grasp 95 mA     drooped and retried at 0.350 s, 1 retry (max 1), then gave up  latency 350.0 ms
+  PASS  cliff (TCRT5000 left)  wheels 1500 us at t=2.000 s, decision latency 0.0 ms (firmware budget 5 ms)  latency 0.0 ms
+  PASS  obstacle 200 -> 60 mm  decelerated from 1.000 s, stopped at 1.500 s
+  PASS  brownout 4.6 V         servo rail cut at 2.000 s, warning: True  latency 0.0 ms
+  PASS  hardware e-stop        latched at 2.000 s, stayed latched after 6 V returned, sync error 0.000 deg on release  latency 0.0 ms
+====================================================================================================
+  6 / 6 faults handled
+
+  WHAT THIS DOES NOT PROVE
+  * The sensor frames are synthesised. Nothing was measured, and no servo moved.
+  * 'Stop in this tick' is a software decision. The real 5 ms deadline lives in the
+    ESP32 interrupt handler for GPIO 25/26: Python plus a serial link cannot promise
+    it, and a supervisor that pretends otherwise would be lying to you.
+  * The over-current, brownout and obstacle thresholds are datasheet and budget
+    numbers, not measurements of your supply. Retune them with a current clamp.
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: PASS
+
+$ python3 src/phase8_safety_testing/run_full_acceptance_suite.py
+------------------------------------------------------------------------------------------------
+========================================================================================================
+  B.U.D.-E MASTER ACCEPTANCE SCORECARD - ALL EIGHT PHASES
+========================================================================================================
+
+  P1  Sizing: torque, power and workspace   [PASS]
+      ok   torque and power budget runs
+           exit 0; ================================================================================
+      ok   workspace envelope
+           no desk collision reported
+
+  P2  Mechanical: 13 STLs, true hollows, coaxiality   [PASS]
+      ok   print-parts verifier
+           PASS: every part is a structurally valid binary STL, seats on the bed, fits a
+      ok   assembly-fit audit
+           204/204 checks PASS (mesh, volume, probes, coaxial, pockets, straddle, rover)
+
+  P3  Electronics: pins, addresses, voltage drop   [PASS]
+      ok   SDA GPIO21 in doc and firmware
+           doc=True firmware=True
+      ok   SCL GPIO22 in doc and firmware
+           doc=True firmware=True
+      ok   OE GPIO4 in doc and firmware
+           doc=True firmware=True
+      ok   I2C addresses 0x40 / 0x41 agreed
+           PCA9685 0x40, INA219 0x41 in both the wiring table and the config
+      ok   e-stop is inline and NC in the 6 V rail
+           the wiring table puts a latching NC mushroom switch in the servo rail
+      ok   supervisor current limit sits under the documented trip
+           supervisor backs off at 2600 mA, the config trips the arm at 3200 mA
+      ok   1 m of 22 AWG at the supply limit keeps the rail above minimum
+           0.53 V of drop vs 1.20 V of headroom at 5.0 A (6.0 -> 4.8 V)
+      ok   gripper stall threshold is below the missed-grasp detector
+           config stops the claw at 450 mA; a missed grasp is under 180 mA
+      ok   firmware safety logic executes on the host
+           73/73 checks: reflex timing, the 350/500 ms rules, the NACK policy, the line parser
+      ok   the real .ino compiles and runs on a host simulator
+           83/83 checks on the real .ino; simulated edge-to-write 237 us (budget 5000)
+      ok   wiring, config and firmware describe the same robot
+           18/18 checks in src/phase3_electronics/power_and_wiring_verifier.py
+      ok   the host serial driver frames commands the firmware defines
+           W <left> <right> / M / G / OE, with the mirrored forward pair
+      ok   reflex pins and channels match the brief
+           GPIO 25/26 cliffs, GPIO 18/19 sonar, PCA9685 channels 6/7 wheels
+      ok   no blocking call in the control loop
+           pulseIn, readStringUntil and readBytes are all absent: the 5 ms budget cannot survive a blocking read
+      ok   FMEA #11 watchdog and #12 bus recovery are in the firmware
+           task watchdog + 500 ms wheel timeout, and 9-clock I2C recovery at boot and on every NACK
+
+  P4  Simulation: URDF chain and the viewer model   [PASS]
+      ok   7 links, 6 joints
+           7 links, 6 joints
+      ok   every expected joint is present
+           base_yaw, shoulder_pitch, elbow_pitch, wrist_pitch, wrist_roll, tcp_fixed
+      ok   URDF limits equal the Phase 5 LIMITS table
+           5 joint limit pairs compared in radians
+      ok   URDF link stack reaches the declared 280 mm
+           straight-up TCP z = 280.0 mm; the viewer's HOME pose is 270.2 mm
+
+  P5  Control: FK, IK, minimum jerk, collision keep-outs   [PASS]
+      ok   IK returns the pose it was given, roll included
+           13 solution(s) for TCP (187, 68, 137) mm pitch 10 deg roll 15 deg
+      ok   unreachable target is refused
+           target outside two-link wrist workspace
+      ok   minimum-jerk plan is 100 Hz and stays inside the speed limits
+           339 samples over 3.38s | peak speeds (19.4, 25.0, 2.8, 2.8, 0.0) deg/s | min TCP z 183.8 mm | limiting joint J2
+      ok   keep-out volumes accept the home pose
+           OK
+      ok   a desk-crashing goal is refused, not planned
+           the planner collects every violation and raises
+      ok   velocity budget is declared per joint
+           limits (35.0, 25.0, 35.0, 40.0, 40.0) deg/s
+
+  P6  Perception: camera round trip and the drive policy   [PASS]
+      ok   camera intrinsics are the declared 62 deg HFOV
+           fx = fy = 532.57 px at 640x480
+      ok   pixel -> ray -> table -> pixel closes the loop
+           41 points, worst residual 2.930e-14 mm
+      ok   a desk point survives project and intersect
+           (150.0, 0.0, 0) -> pixel (320.0, -23.2) -> (150.00, 0.00, 0.00) mm
+      ok   camera mount offset is declared
+           offset (0.0, 30.0, -43.0) mm (read off CAD, not a caliper)
+      ok   drive policy moves when every precondition holds
+           wheels (0.06, 0.1)
+      ok   drive policy fails closed on every precondition
+           refused: stale, cliff, obstacle, e-stop, arm not stowed, no bearing
+      ok   mobile fetch converges on the standoff
+           arrived=True in 546 ticks, 7.0 mm off
+
+  P7  Voice and personality: six gestures, deterministic parser   [PASS]
+      ok   every gesture is feasible inside its speed budget
+           6 gestures, 1862 frames at 100 Hz
+      ok   the cliff reflex pre-empts a running gesture
+           priority 0 beat priority 3
+      ok   the recoil reverses both wheels
+           wheels 1000/1000 us
+      ok   halt stops the wheels in the same frame and drops the gesture
+           wheels (1500.0, 1500.0)
+      ok   grasp detector separates a miss from a grip
+           95 mA closed = miss, 600 mA closed = grip
+      ok   the parser answers the brief's phrases
+           7 phrases, 7 correct
+      ok   a stop anywhere in a sentence still stops
+           HALT on matched 'e stop'
+
+  P8  Safety: six injected faults and the telemetry log   [PASS]
+      ok   fault: over-current 2900 mA
+           backed off home at 2.160 s (limit 2.150 s)
+      ok   fault: missed grasp 95 mA
+           drooped and retried at 0.350 s, 1 retry (max 1), then gave up
+      ok   fault: cliff (TCRT5000 left)
+           wheels 1500 us at t=2.000 s, decision latency 0.0 ms (firmware budget 5 ms)
+      ok   fault: obstacle 200 -> 60 mm
+           decelerated from 1.000 s, stopped at 1.500 s
+      ok   fault: brownout 4.6 V
+           servo rail cut at 2.000 s, warning: True
+      ok   fault: hardware e-stop
+           latched at 2.000 s, stayed latched after 6 V returned, sync error 0.000 deg on release
+      ok   all six injectors ran
+           6/6 faults injected
+
+========================================================================================================
+  P1  Sizing: torque, power and workspace                  PASS
+  P2  Mechanical: 13 STLs, true hollows, coaxiality        PASS
+  P3  Electronics: pins, addresses, voltage drop           PASS
+  P4  Simulation: URDF chain and the viewer model          PASS
+  P5  Control: FK, IK, minimum jerk, collision keep-outs   PASS
+  P6  Perception: camera round trip and the drive policy   PASS
+  P7  Voice and personality: six gestures, deterministic parser PASS
+  P8  Safety: six injected faults and the telemetry log    PASS
+--------------------------------------------------------------------------------------------------------
+  50 / 50 checks passed in 21.7 s
+  VERDICT: PASS
+========================================================================================================
+
+  WHAT THIS SCORECARD IS NOT
+  * Nothing here has been printed, powered, calibrated or dropped. Every dimension
+    is a model, every servo figure is a datasheet, and every latency is simulated.
+  * The six Phase 8 faults are synthetic sensor timelines: the supervisor's decisions
+    were exercised, not the hardware's reactions.
+  * The firmware is compiled by a real C++ compiler and its control flow really runs,
+    but against stubbed Arduino/ESP32/Wire headers. The I2C peripheral, the GPIO
+    interrupts, the task watchdog and the servos are models. It has never been
+    flashed, and the <5 ms cliff reflex is a requirement the sketch checks itself
+    against - not a measurement.
+  * The wheel directions are an ASSUMPTION (mirrored servos) that only a floor test
+    can confirm. Verify before any cliff test: `W 1320 1680` must move the rover
+    away from you. A wrong sign turns the cliff reflex into the cliff accelerator.
+  * Before any of this touches a hand or a desk edge, do the bring-up checklist in
+    docs/phase8_safety_testing_and_bringup_checklist.md, in order, with the e-stop
+    in reach.
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: VERDICT: PASS
+
+$ python3 -m pytest -v
+------------------------------------------------------------------------------------------------
+============================= test session starts ==============================
+platform linux -- Python 3.11.2, pytest-9.1.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/user/Dum-E
+configfile: pytest.ini
+testpaths: tests
+collecting ... collected 144 items
+
+tests/test_deep_cad_audit.py::test_deep_cad_audit_reports_only_known_issues PASSED [  0%]
+tests/test_deep_cad_audit.py::test_audit_checks_every_part PASSED        [  1%]
+tests/test_docs.py::GuidePaths::test_every_command_block_in_the_checklist_is_a_real_script PASSED [  2%]
+tests/test_docs.py::GuidePaths::test_every_path_the_docs_tell_you_to_run_exists 
+tests/test_docs.py::GuidePaths::test_every_path_the_docs_tell_you_to_run_exists PASSED [  2%]
+tests/test_docs.py::GuidePaths::test_the_checklist_covers_every_hardware_gate PASSED [  3%]
+tests/test_docs.py::GuidePaths::test_the_guide_and_checklist_exist PASSED [  4%]
+tests/test_docs.py::GuidePaths::test_the_guide_covers_every_phase PASSED [  4%]
+tests/test_docs.py::GuidePaths::test_the_two_documents_point_at_each_other PASSED [  5%]
+tests/test_docs.py::GuideHonesty::test_it_explains_the_latched_e_stop PASSED [  6%]
+tests/test_docs.py::GuideHonesty::test_it_says_nothing_here_is_evidence_about_hardware PASSED [  6%]
+tests/test_docs.py::GuideHonesty::test_it_says_the_firmware_has_never_been_flashed PASSED [  7%]
+tests/test_docs.py::GuideHonesty::test_it_tells_you_the_e_stop_is_the_only_real_stop PASSED [  8%]
+tests/test_docs.py::GuideHonesty::test_it_warns_about_the_unfitted_cliff_sensor_trap PASSED [  9%]
+tests/test_docs.py::SetupCheck::test_it_runs_from_another_folder_and_names_every_test_module PASSED [  9%]
+tests/test_docs.py::BranchMarkers::test_every_marker_exists_on_this_branch 
+tests/test_docs.py::BranchMarkers::test_every_marker_exists_on_this_branch PASSED [ 10%]
+tests/test_docs.py::BranchMarkers::test_the_download_instructions_point_at_this_branch PASSED [ 11%]
+tests/test_docs.py::BranchMarkers::test_there_are_enough_markers_to_spot_a_wrong_branch PASSED [ 11%]
+tests/test_docs.py::PytestRunsFromAnyFolder::test_pytest_works_when_launched_from_outside_the_repository PASSED [ 12%]
+tests/test_docs.py::PytestRunsFromAnyFolder::test_the_bootstrap_files_exist PASSED [ 13%]
+tests/test_docs.py::FirmwarePolarityDocs::test_the_wiring_doc_names_the_polarity_constant PASSED [ 13%]
+tests/test_firmware.py::ReflexLogic::test_logic_header_compiles_and_passes PASSED [ 14%]
+tests/test_firmware.py::ReflexLogic::test_the_logic_header_has_no_arduino_dependency PASSED [ 15%]
+tests/test_firmware.py::RealSketchOnHost::test_sketch_compiles_and_passes_its_host_simulation PASSED [ 15%]
+tests/test_firmware.py::RealSketchOnHost::test_the_headline_reflex_is_inside_the_budget_in_the_simulation PASSED [ 16%]
+tests/test_firmware.py::BothCoreGenerations::test_the_legacy_watchdog_branch_still_compiles_and_passes PASSED [ 17%]
+tests/test_firmware.py::BothSensorConventions::test_the_inverted_polarity_build_passes_the_same_suite PASSED [ 18%]
+tests/test_firmware.py::SketchSource::test_channel_list_commands_seed_from_the_shadow PASSED [ 18%]
+tests/test_firmware.py::SketchSource::test_enabling_outputs_without_current_sensing_is_refused PASSED [ 19%]
+tests/test_firmware.py::SketchSource::test_every_host_wheel_command_goes_through_the_guarded_path PASSED [ 20%]
+tests/test_firmware.py::SketchSource::test_fmea_11_watchdog_is_configured PASSED [ 20%]
+tests/test_firmware.py::SketchSource::test_fmea_12_bus_recovery_is_implemented_and_used_at_boot PASSED [ 21%]
+tests/test_firmware.py::SketchSource::test_interrupt_handlers_never_touch_i2c_serial_or_floats PASSED [ 22%]
+tests/test_firmware.py::SketchSource::test_no_blocking_or_unbounded_calls_in_the_loop PASSED [ 22%]
+tests/test_firmware.py::SketchSource::test_the_briefs_pins_and_channels_are_all_there PASSED [ 23%]
+tests/test_firmware.py::SketchSource::test_the_calibration_pair_gives_4096_for_the_stock_shunt PASSED [ 24%]
+tests/test_firmware.py::SketchSource::test_the_calibration_points_are_named_not_buried PASSED [ 25%]
+tests/test_firmware.py::SketchSource::test_the_cliff_polarity_is_one_named_constant PASSED [ 25%]
+tests/test_firmware.py::SketchSource::test_the_harness_walks_the_documented_protocol PASSED [ 26%]
+tests/test_firmware.py::SketchSource::test_the_host_harness_checks_pin_levels_exactly PASSED [ 27%]
+tests/test_firmware.py::SketchSource::test_the_i2c_timeout_is_inside_the_reflex_budget PASSED [ 27%]
+tests/test_firmware.py::SketchSource::test_the_loop_services_the_cliff_before_the_serial_port PASSED [ 28%]
+tests/test_firmware.py::SketchSource::test_the_oe_branch_accepts_its_documented_spelling PASSED [ 29%]
+tests/test_firmware.py::SketchSource::test_the_reflex_numbers_are_the_briefs_numbers PASSED [ 29%]
+tests/test_firmware.py::SketchSource::test_the_shadow_is_initialised_before_any_write PASSED [ 30%]
+tests/test_firmware.py::SketchSource::test_the_shunt_calibration_is_named_derived_and_reported PASSED [ 31%]
+tests/test_firmware.py::SketchSource::test_the_three_build_options_are_named_and_defaulted_safely PASSED [ 31%]
+tests/test_firmware.py::SketchSource::test_the_wheels_are_declared_mirrored PASSED [ 32%]
+tests/test_firmware.py::DocsAgree::test_fmea_rows_11_and_12_are_no_longer_not_implemented PASSED [ 33%]
+tests/test_firmware.py::DocsAgree::test_the_config_agrees_with_the_firmware_channels PASSED [ 34%]
+tests/test_firmware.py::DocsAgree::test_the_wiring_doc_lists_the_new_pins PASSED [ 34%]
+tests/test_foundations.py::Foundations::test_fk_ik_roundtrip PASSED      [ 35%]
+tests/test_foundations.py::Foundations::test_mobile_fail_closed PASSED   [ 36%]
+tests/test_foundations.py::Foundations::test_path_valid_and_invalid PASSED [ 36%]
+tests/test_foundations.py::Foundations::test_plane_projection_and_bad_calibration PASSED [ 37%]
+tests/test_foundations.py::Foundations::test_urdf_chain_and_limits PASSED [ 38%]
+tests/test_phase3_tools.py::DriverFrames::test_an_out_of_range_wheel_pulse_is_refused PASSED [ 38%]
+tests/test_phase3_tools.py::DriverFrames::test_channel_frames_offer_both_immediate_and_blended PASSED [ 39%]
+tests/test_phase3_tools.py::DriverFrames::test_drive_speeds_map_to_the_mirrored_pair PASSED [ 40%]
+tests/test_phase3_tools.py::DriverFrames::test_outputs_frame_uses_the_firmware_polarity PASSED [ 40%]
+tests/test_phase3_tools.py::DriverFrames::test_wheel_frame_is_exactly_the_documented_shape PASSED [ 41%]
+tests/test_phase3_tools.py::DriverJointTable::test_angles_clamp_to_the_servo_travel PASSED [ 42%]
+tests/test_phase3_tools.py::DriverJointTable::test_gripper_percentage_covers_closed_to_open PASSED [ 43%]
+tests/test_phase3_tools.py::DriverJointTable::test_home_is_one_blended_frame_over_all_six_channels PASSED [ 43%]
+tests/test_phase3_tools.py::DriverJointTable::test_six_arm_joints_on_channels_zero_to_five PASSED [ 44%]
+tests/test_phase3_tools.py::DriverCli::test_an_arm_move_refuses_a_wheel_channel PASSED [ 45%]
+tests/test_phase3_tools.py::DriverCli::test_dry_run_ping_sends_nothing_and_succeeds PASSED [ 45%]
+tests/test_phase3_tools.py::DriverCli::test_no_arguments_prints_examples_rather_than_opening_a_port PASSED [ 46%]
+tests/test_phase3_tools.py::DriverCli::test_the_driver_and_the_firmware_agree PASSED [ 47%]
+tests/test_phase3_tools.py::WiringVerifier::test_it_passes_and_checks_a_meaningful_number_of_things PASSED [ 47%]
+tests/test_phase3_tools.py::WiringVerifier::test_json_mode_is_parseable_and_agrees PASSED [ 48%]
+tests/test_phase3_tools.py::WiringVerifier::test_the_voltage_drop_grows_as_the_wire_gets_thinner PASSED [ 49%]
+tests/test_phase3_tools.py::UrdfVerifier::test_it_passes PASSED          [ 50%]
+tests/test_phase3_tools.py::UrdfVerifier::test_straight_up_is_the_folded_link_stack PASSED [ 50%]
+tests/test_phase3_tools.py::UrdfVerifier::test_the_urdf_walk_and_the_solver_are_the_same_robot PASSED [ 51%]
+tests/test_phase3_tools.py::OtherEntryPoints::test_a_single_named_fault_still_works PASSED [ 52%]
+tests/test_phase3_tools.py::OtherEntryPoints::test_the_moveit_bridge_has_a_dry_run PASSED [ 52%]
+tests/test_phase3_tools.py::OtherEntryPoints::test_the_supervisor_accepts_fault_all PASSED [ 53%]
+tests/test_phase5_phase6.py::RoverParts::test_all_thirteen_parts_are_valid_and_seated PASSED [ 54%]
+tests/test_phase5_phase6.py::RoverParts::test_bolt_circle_is_inside_the_base_flange PASSED [ 54%]
+tests/test_phase5_phase6.py::RoverParts::test_every_declared_interface_names_a_real_part PASSED [ 55%]
+tests/test_phase5_phase6.py::RoverParts::test_rover_bolt_circle_exists_in_both_halves PASSED [ 56%]
+tests/test_phase5_phase6.py::Planner::test_intermediate_samples_are_checked PASSED [ 56%]
+tests/test_phase5_phase6.py::Planner::test_keep_out_geometry PASSED      [ 57%]
+tests/test_phase5_phase6.py::Planner::test_loop_travel_is_only_one_term_of_a_stopping_distance PASSED [ 58%]
+tests/test_phase5_phase6.py::Planner::test_start_and_goal_are_each_checked PASSED [ 59%]
+tests/test_phase5_phase6.py::Planner::test_valid_move_reproduces_endpoints_and_respects_speed_limits PASSED [ 59%]
+tests/test_phase5_phase6.py::InverseKinematics::test_adaptation_labels_the_pitch_it_achieved PASSED [ 60%]
+tests/test_phase5_phase6.py::InverseKinematics::test_fail_closed_by_default PASSED [ 61%]
+tests/test_phase5_phase6.py::InverseKinematics::test_strict_solutions_come_first_when_the_exact_pitch_is_reachable PASSED [ 61%]
+tests/test_phase5_phase6.py::CameraModel::test_camera_transform_is_a_proper_rotation PASSED [ 62%]
+tests/test_phase5_phase6.py::CameraModel::test_intersect_rejects_a_bad_transform PASSED [ 63%]
+tests/test_phase5_phase6.py::CameraModel::test_nominal_intrinsics_follow_the_pinhole_formula PASSED [ 63%]
+tests/test_phase5_phase6.py::CameraModel::test_project_and_intersect_are_inverses PASSED [ 64%]
+tests/test_phase5_phase6.py::CameraModel::test_projection_round_trip_closes PASSED [ 65%]
+tests/test_phase5_phase6.py::MobilePolicy::test_cliff_reflex_reverses_and_turns PASSED [ 65%]
+tests/test_phase5_phase6.py::MobilePolicy::test_fail_closed PASSED       [ 66%]
+tests/test_phase5_phase6.py::MobilePolicy::test_fetch_simulation_arrives_at_the_standoff PASSED [ 67%]
+tests/test_phase5_phase6.py::MobilePolicy::test_latency_budget_adds_up_and_rejects_nonsense PASSED [ 68%]
+tests/test_phase5_phase6.py::MobilePolicy::test_pca_finds_a_known_axis PASSED [ 68%]
+tests/test_phase5_phase6.py::MobilePolicy::test_pca_refuses_a_symmetric_blob PASSED [ 69%]
+tests/test_phase5_phase6.py::MobilePolicy::test_pca_rejects_junk_input PASSED [ 70%]
+tests/test_phase5_phase6.py::Ros2ConfigDrafts::test_controller_config_only_names_real_joints PASSED [ 70%]
+tests/test_phase5_phase6.py::Ros2ConfigDrafts::test_srdf_is_valid_and_agrees_with_the_code PASSED [ 71%]
+tests/test_phase5_phase6.py::WebViewerModel::test_js_constants_match_the_python_constants PASSED [ 72%]
+tests/test_phase5_phase6.py::WebViewerModel::test_js_fk_matches_python_fk PASSED [ 72%]
+tests/test_phase7_phase8.py::GestureLibrary::test_an_infeasible_gesture_is_refused_at_construction PASSED [ 73%]
+tests/test_phase7_phase8.py::GestureLibrary::test_every_keyframe_is_inside_the_joint_limits PASSED [ 74%]
+tests/test_phase7_phase8.py::GestureLibrary::test_min_jerk_duration_matches_the_1875_rule PASSED [ 75%]
+tests/test_phase7_phase8.py::GestureLibrary::test_minimum_jerk_is_rest_to_rest PASSED [ 75%]
+tests/test_phase7_phase8.py::GestureLibrary::test_peak_speed_never_exceeds_its_own_budget PASSED [ 76%]
+tests/test_phase7_phase8.py::GestureLibrary::test_sampling_is_100hz_and_starts_at_zero PASSED [ 77%]
+tests/test_phase7_phase8.py::GestureLibrary::test_six_gestures_and_every_one_validates PASSED [ 77%]
+tests/test_phase7_phase8.py::GestureLibrary::test_the_cliff_reflex_reverses_then_stops_the_wheels PASSED [ 78%]
+tests/test_phase7_phase8.py::GestureLibrary::test_the_gesture_budget_is_larger_than_the_transport_budget PASSED [ 79%]
+tests/test_phase7_phase8.py::Director::test_a_gesture_returns_to_its_declared_pose PASSED [ 79%]
+tests/test_phase7_phase8.py::Director::test_a_lower_priority_event_does_not_interrupt_a_playing_gesture PASSED [ 80%]
+tests/test_phase7_phase8.py::Director::test_grasp_detection_is_one_sided PASSED [ 81%]
+tests/test_phase7_phase8.py::Director::test_halt_stops_the_wheels_and_ignores_everything_until_resume PASSED [ 81%]
+tests/test_phase7_phase8.py::Director::test_the_cliff_reflex_pre_empts_anything PASSED [ 82%]
+tests/test_phase7_phase8.py::Director::test_the_idle_loop_starts_only_after_the_idle_timeout PASSED [ 83%]
+tests/test_phase7_phase8.py::Director::test_the_wake_word_starts_the_head_tilt PASSED [ 84%]
+tests/test_phase7_phase8.py::Language::test_fetch_fills_the_tool_slot PASSED [ 84%]
+tests/test_phase7_phase8.py::Language::test_fetch_stows_the_arm_before_any_wheel_command PASSED [ 85%]
+tests/test_phase7_phase8.py::Language::test_follow_me_runs_the_cliff_reflex_when_a_sensor_trips PASSED [ 86%]
+tests/test_phase7_phase8.py::Language::test_halt_plays_no_gesture PASSED [ 86%]
+tests/test_phase7_phase8.py::Language::test_home_perched_is_a_real_pose PASSED [ 87%]
+tests/test_phase7_phase8.py::Language::test_screwdriver_does_not_contain_a_stop PASSED [ 88%]
+tests/test_phase7_phase8.py::Language::test_stop_wins_anywhere_in_a_sentence PASSED [ 88%]
+tests/test_phase7_phase8.py::Language::test_the_briefs_phrases_map_to_their_intents PASSED [ 89%]
+tests/test_phase7_phase8.py::Language::test_unknown_text_moves_nothing PASSED [ 90%]
+tests/test_phase7_phase8.py::Language::test_wheel_pulse_mapping_is_centred_on_stop PASSED [ 90%]
+tests/test_phase7_phase8.py::Language::test_whisper_absence_is_not_a_crash PASSED [ 91%]
+tests/test_phase7_phase8.py::Supervisor::test_a_short_current_spike_does_not_trip PASSED [ 92%]
+tests/test_phase7_phase8.py::Supervisor::test_all_six_injected_faults_are_handled PASSED [ 93%]
+tests/test_phase7_phase8.py::Supervisor::test_brownout_cuts_torque_and_clears_only_when_stable PASSED [ 93%]
+tests/test_phase7_phase8.py::Supervisor::test_cliff_stops_the_wheels_in_the_same_tick PASSED [ 94%]
+tests/test_phase7_phase8.py::Supervisor::test_estop_latches_and_release_does_not_jump PASSED [ 95%]
+tests/test_phase7_phase8.py::Supervisor::test_obstacle_decelerates_then_stops PASSED [ 95%]
+tests/test_phase7_phase8.py::Supervisor::test_overcurrent_backs_off_after_the_hold_time PASSED [ 96%]
+tests/test_phase7_phase8.py::Supervisor::test_stale_sensors_fail_closed PASSED [ 97%]
+tests/test_phase7_phase8.py::Supervisor::test_telemetry_records_every_required_field PASSED [ 97%]
+tests/test_phase7_phase8.py::Supervisor::test_the_supervisor_trips_before_the_documented_supply_limit PASSED [ 98%]
+tests/test_phase7_phase8.py::Supervisor::test_unknown_fault_name_is_refused PASSED [ 99%]
+tests/test_phase7_phase8.py::AcceptanceSuite::test_the_master_suite_runs_and_does_not_error PASSED [100%]
+
+=================== 144 passed, 10 subtests passed in 17.21s ===================
+------------------------------------------------------------------------------------------------
+  -> exit 0 (OK)   summary: 144 passed
+
+================================================================================================
+  WALKTHROUGH SUMMARY
+================================================================================================
+  PHASE  EXIT   RESULT
+  1      0      PASS
+         $ python3 src/phase1_sizing/torque_and_power_calc.py
+  1      0      ran
+         $ python3 src/phase1_sizing/single_joint_ping.py --dry-run
+  2      0      PASS
+         $ python3 src/phase2_mechanical/verify_print_parts.py
+  2      0      204 / 204
+         $ python3 src/phase2_mechanical/verify_assembly_fit.py
+  3      0      VERDICT: PASS
+         $ python3 src/phase3_electronics/power_and_wiring_verifier.py
+  3      0      ran
+         $ python3 src/phase3_electronics/esp32_arm_driver.py --dry-run --ping --home --drive 0.5 0.5 --stop
+  4      0      VERDICT: PASS
+         $ python3 src/phase4_simulation/verify_urdf_model.py
+  4      0      ran
+         $ python3 src/phase4_simulation/sim_runner.py --backend kinematic
+  5      0      ran
+         $ python3 src/phase5_control/kinematics.py
+  5      0      ran
+         $ python3 src/phase5_control/trajectory_and_collision.py
+  5      0      PASS
+         $ python3 src/phase5_control/ros2_moveit_bridge.py --dry-run
+  6      0      ran
+         $ python3 src/phase6_perception/camera_and_hand_eye_calib.py
+  6      0      ran
+         $ python3 src/phase6_perception/vision_mobile_navigator.py
+  7      0      PASS
+         $ python3 src/phase7_voice_personality/personality_engine.py
+  7      0      ran
+         $ python3 src/phase7_voice_personality/voice_assistant.py --demo
+  8      0      PASS
+         $ python3 src/phase8_safety_testing/safety_supervisor_and_logger.py --fault all --seconds 6 --no-log
+  8      0      VERDICT: PASS
+         $ python3 src/phase8_safety_testing/run_full_acceptance_suite.py
+  8      0      144 passed
+         $ python3 -m pytest -v
+
+  18 of 18 commands exited 0.
+
+  WHAT THIS DOES NOT MEAN
+  * 'PASS' here means a script's own self-check agreed with itself. It is not an
+    independent verification, and it is not a measurement of anything physical.
+  * No STL has been sliced or printed; the fit audit is arithmetic on vertices.
+  * The firmware has never been flashed; its checks run against stubbed headers.
+  * Before any of this touches a hand or a desk edge, do the bring-up checklist in
+    docs/phase8_safety_testing_and_bringup_checklist.md, in order, e-stop in reach.
+================================================================================================
