@@ -4,7 +4,7 @@
 
 ## 1. Open-Source Mechanical Heritage
 Instead of reinventing joint kinematics from scratch, B.U.D.-E's mechanical design combines proven open-source patterns tailored to our **$58.50 Hybrid `MG996R` + `MG90S` architecture**:
-- **Double-Shear U-Brackets** (from [ROBOTIS OpenManipulator-X](https://github.com/ROBOTIS-GIT/open_manipulator) & [SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100)): Every pitch joint (`J2`, `J3`, `J4`) supports the link on **both sides**—the metal servo spline on one side and a **3D-printed `6.0 mm` concentric passive pivot pin** on the opposite side.
+- **Double-Shear U-Brackets** (from [ROBOTIS OpenManipulator-X](https://github.com/ROBOTIS-GIT/open_manipulator) & [SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100)): Every pitch joint (`J2`, `J3`, `J4`) supports the link on **both sides**—the metal servo spline on one side and a **3D-printed `6.0 mm` concentric passive pivot pin** on the opposite side. That pin is not a description any more: it is modelled and it ships as part `13` (three joint pins, plus the claw's retainer and collar). The kit contains nothing else that fits a `6.60 mm` bore, so **do not skip that print**. Each shaft is exactly the corridor it spans — two `2.5 mm` flank walls plus the `0.30 mm` joint gap = `5.30 mm` — so its tip lands flush with the parent's bore and never reaches the servo case behind it.
 - **3D-Printed 6mm BB Slewing Bearing** (from open-source desktop turret designs): Offloads the overturning moment from the `J1` (`MG996R`) output shaft onto a `78 mm` diameter circular raceway filled with `6 mm` plastic airsoft BBs (or 3D-printed `5.8 × 5.8 mm` cylindrical rollers).
 - **Synchronous 1:1 Meshed Spur-Gear Claw**: Driven by a single `13.4 g` `MG90S` micro servo (`J6`) with an overhead tilted camera bezel ("DUM-E Eyes") for the `6 g` `HBV-1825`/`OV2640` USB board camera.
 
@@ -32,9 +32,10 @@ below are **measured from the delivered STL bytes**, not restated from the sourc
 | `10_cable_clips_and_electronics_tray.stl` | `72.0 x 78.0 x 8.0` | `20.5 g` | Flat on the bed |
 | `11_mobile_rover_chassis.stl` | `146.0 x 111.0 x 25.0` | `151.0 g` | Deck down, side plates vertical |
 | `12_drive_wheels_and_caster.stl` | `48.0 x 108.0 x 26.5` | `14.6 g` | Wheels flat with the axis vertical, caster cup mouth up |
+| `13_pivot_pins_and_claw_collar.stl` | `12.0 x 106.0 x 13.0` | `2.9 g` | Every pin standing on its head face |
 
-Measured envelope and union volume come from the STL bytes and the declared primitives, the same numbers `verify_assembly_fit.py` asserts. The 13 parts are **585 g of
-100% solid PLA**; at 3 perimeters and 20% infill a slicer will report roughly 275 g (~$5.00 at $18/kg).
+Measured envelope and union volume come from the STL bytes and the declared primitives, the same numbers `verify_assembly_fit.py` asserts. The 14 parts are **588 g of
+100% solid PLA**; at 3 perimeters and 20% infill a slicer will report roughly 278 g (~$5.05 at $18/kg).
 
 The STLs are exported in the **assembly frame**: a joint axis is the origin, so parts `05`,
 `06`, `07` and `08` legitimately start below `z = 0`. `verify_print_parts.py` checks that the
@@ -99,17 +100,18 @@ Added in the same session as the Phase 5/6 work. The table above still describes
 still quotes filament weights that were never measured. The authoritative numbers are the ones
 `generate_stl_parts.py` prints, which now includes a **mesh-volume column**.
 
-## A.1 Two new parts (13 total)
+## A.1 The newest parts, measured (14 parts total)
 
 | File | Measured bounding box | Tris | Mesh volume | Declared `g` |
 |---|---:|---:|---:|---:|
-| `11_mobile_rover_chassis.stl` | `146.0 × 116.0 × 25.0 mm` | 1424 | 116.3 cm³ | 38 g |
-| `12_drive_wheels_and_caster.stl` | `48.0 × 108.0 × 14.0 mm` | 3548 | 20.0 cm³ | 17 g |
+| `11_mobile_rover_chassis.stl` | `146.0 × 111.0 × 25.0 mm` | 2000 | 136.8 cm³ | 42 g |
+| `12_drive_wheels_and_caster.stl` | `48.0 × 108.0 × 26.5 mm` | 3548 | 19.7 cm³ | 20 g |
+| `13_pivot_pins_and_claw_collar.stl` | `12.0 × 106.0 × 13.0 mm` | 1312 | 2.3 cm³ | 2 g |
 
-The `g` column is the **mesh volume × PLA density**, which ignores infill *and* counts every
-overlap between added primitives twice. It is an upper bound, not a print estimate. For the
-rover it says 144 g and 25 g of solid material; with 3 walls and 20–25 % infill your slicer
-will report much less, and **your slicer is the authority**. Do not plan a filament budget
+The `g` column is the **declared** filament estimate, not a slicer number. The honest solid
+figure is the deep audit's `solid volume is sane` row: 151.0 g for the chassis and 14.6 g for
+the wheels. With 3 walls and 20–25 % infill your slicer will report much less, and **your
+slicer is the authority**. Do not plan a filament budget
 from the declared 38 g / 17 g figures.
 
 The chassis carries: the deck and side plates, two outboard drive-servo pockets (open on the
@@ -145,7 +147,7 @@ and measure across opposite bolts with calipers.
 shipped STL bytes - topology, true volume and mass, first-layer area and overhang, every bore
 at both ends of a `+/-0.15 mm` printer, servo pocket clearances, board footprints in the tray,
 claw tooth phase, and interference between every mating link over the whole declared travel.
-It runs **230 checks** and currently reports **230 pass, 0 open items**.
+It runs **256 checks** and currently reports **256 pass, 0 open items**.
 
 The first audit of these files reported **13 open items** and they were real: the geometry was
 rebuilt rather than re-documented. What it found and what changed:
@@ -272,7 +274,7 @@ of the four stations. A nut will drop in and cannot turn.
 ## B.3 The audit: `verify_assembly_fit.py`
 
 ```
-python3 src/phase2_mechanical/verify_assembly_fit.py          # 204 checks
+python3 src/phase2_mechanical/verify_assembly_fit.py          # 212 checks
 python3 src/phase2_mechanical/verify_assembly_fit.py --voxel 3  # coarser, faster
 ```
 
@@ -295,7 +297,7 @@ It re-reads `cad/stl/*.stl` - the files you print - and measures:
   `45 / 135 / 225 / 315 deg`, wheel tyre radius (`24.00 mm`), hub bore, and the chassis axle
   bore on the wheel axis.
 
-Current result: **204 / 204 checks PASS**, and `verify_print_parts.py` PASS.
+Current result: **212 / 212 checks PASS**, and `verify_print_parts.py` PASS.
 
 ## B.4 Honest limits of this appendix
 
@@ -306,5 +308,7 @@ Current result: **204 / 204 checks PASS**, and `verify_print_parts.py` PASS.
   its sides and the pocket floor, so take the 1.0 mm of axial slack up with the horn screws or
   add a strap over the case.
 * `AXIAL_FIT_TOTAL_MM = 1.0 mm` is a design allowance, not a measurement.
-* Print `00_tolerance_test_coupon.stl` first and fit a real servo, a real M3 nut and a real
-  6 mm pin before printing anything else.
+* Print `00_tolerance_test_coupon.stl` first and fit a real servo and a real M3 nut before
+  printing anything else. Then print `13_pivot_pins_and_claw_collar.stl` **before** the links:
+  that pin is a hand fit, and the coupon tells you whether your printer needs it sanded before
+  four of them are already in the arm.

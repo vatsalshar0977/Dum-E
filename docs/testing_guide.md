@@ -193,7 +193,7 @@ Expected, at the end:
 ```
   PHASE  EXIT   RESULT
   1      0      PASS
-  2      0      204 / 204
+  2      0      212 / 212
   3      0      VERDICT: PASS
   ...
   8      0      131 passed
@@ -274,7 +274,7 @@ Expected ending:
 
 ```
   P1  Sizing: torque, power and workspace                  PASS
-  P2  Mechanical: 13 STLs, true hollows, coaxiality         PASS
+  P2  Mechanical: 14 STLs, true hollows, coaxiality         PASS
   P3  Electronics: pins, addresses, voltage drop            PASS
   P4  Simulation: URDF chain and the viewer model           PASS
   P5  Control: FK, IK, minimum jerk, collision keep-outs    PASS
@@ -300,7 +300,7 @@ Saved copy for the record: `docs/phase8_acceptance_scorecard.txt`.
 ## Step 6 — Phase 2: regenerate the parts and re-audit them
 
 This is the real test of the CAD code: delete the STLs, rebuild them from source, and re-run the
-204-point audit. If the generator and the auditor disagreed, this catches it.
+212-point audit. If the generator and the auditor disagreed, this catches it.
 
 ```powershell
 python src\phase2_mechanical\generate_stl_parts.py
@@ -313,10 +313,10 @@ Expected:
 ```
 PASS: every part is a structurally valid binary STL, seats on the bed, fits a
 ...
-  TOTAL      204 / 204 checks   PASS
+  TOTAL      212 / 212 checks   PASS
 ```
 
-What the 204 checks are: mesh integrity (52), volume/hollowing (13), ray probes (47), coaxality
+What the 212 checks are: mesh integrity (56), volume/hollowing (14), ray probes (50), coaxality
 of every bore (25), pocket depths (36), the +0.60 mm total straddle clearances (12) and the rover
 bolt circle (19).
 
@@ -920,7 +920,7 @@ python src\phase1_sizing\torque_and_power_calc.py
 python src\phase1_sizing\single_joint_ping.py --dry-run
 python src\phase2_mechanical\generate_stl_parts.py
 python src\phase2_mechanical\verify_print_parts.py
-python src\phase2_mechanical\verify_assembly_fit.py                  # 204 / 204
+python src\phase2_mechanical\verify_assembly_fit.py                  # 212 / 212
 python src\phase2_mechanical\mesh_audit.py
 python src\phase3_electronics\power_and_wiring_verifier.py           # 18 checks
 python src\phase3_electronics\esp32_arm_driver.py --dry-run --ping --home

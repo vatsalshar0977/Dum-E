@@ -100,7 +100,28 @@ SERVO_POCKET_CLEARANCE_MM = 0.90     # servo case -> cavity wall, TOTAL. 0.5 mm 
                                      # grows a wall 0.15 mm per side.
 PASSIVE_PIN_D = 6.0
 PASSIVE_BORE_D = PASSIVE_PIN_D + PASSIVE_BORE_TOTAL_MM
+# The passive side of J2, J3 and J4 is held by a PRINTED pin, not a bought dowel: the kit has
+# nothing else that fits a 6.6 mm bore. `PIVOT_PIN_SHAFT_MM` is the corridor it spans at one
+# joint - the DISTAL flank wall + the joint's axial gap + the PROXIMAL wall - so the tip ends
+# flush with the parent's bore and never reaches the servo case behind it:
+#   2 x 2.5 mm walls + 0.30 mm gap = 5.30 mm  (measured in 04/05, 05/06 and 06/07)
+PIVOT_PIN_HEAD_D_MM = 10.0           # a head you can push on, and it cannot fall into the bore
+PIVOT_PIN_HEAD_T_MM = 4.0
+# The claw's passive finger rides the palm's 8.0 mm sleeve, and that sleeve is a blind 6.6 mm
+# socket 9 mm deep. The pin that plugs it - head uppermost - is the finger's ONLY axial
+# retainer, so the kit has to ship it too.
+CLAW_PIN_SHAFT_MM = 9.0
+CLAW_COLLAR_H_MM = 3.0               # the sleeve stands this far proud of the finger's hub:
+                                     # with the collar slipped on under the pin head, the finger
+                                     # has zero axial float (09 hub 6.0 mm over a 9.0 mm sleeve)
+CLAW_COLLAR_ID_MM = 8.2              # slips over the palm's 8.00 mm sleeve
+CLAW_COLLAR_OD_MM = 12.0             # wider than the finger hub bore (8.9), inside the teeth (8.44)
 WALL_T = 2.5                         # the default printed wall
+# The passive side of J2, J3 and J4 is held by a PRINTED pin, not a bought dowel: nothing else
+# in the kit fits a 6.6 mm bore. The shaft is exactly the corridor it spans - the DISTAL flank
+# wall + the joint's axial gap + the PROXIMAL wall - so its tip ends flush with the parent's
+# bore and never reaches the servo case behind it (measured 5.30 mm in 04/05, 05/06 and 06/07).
+PIVOT_PIN_SHAFT_MM = 2.0 * WALL_T + AXIAL_CLEARANCE_MM
 DRIVEN_WALL_T = 3.0                  # the wall the spline passes through
 
 # --- Joint axes, in the frame of the part that carries the servo ------------------------
@@ -1063,6 +1084,12 @@ CAVITY_PROBES: List[SolidProbe] = [
 ]
 
 MATERIAL_PROBES: List[SolidProbe] = [
+    _probe("13_pivot_pins_and_claw_collar.stl", "joint pin shaft material", (0.0, -48.0, 2.0),
+           "material"),
+    _probe("13_pivot_pins_and_claw_collar.stl", "joint pin head material", (0.0, -48.0, 6.3),
+           "material"),
+    _probe("13_pivot_pins_and_claw_collar.stl", "collar bore - slips over the palm sleeve",
+           (0.0, 0.0, 1.5), "air"),
     _probe("12_drive_wheels_and_caster.stl", "wheel hub bore", (0.0, -30.0, 24.0), "air"),
     _probe("12_drive_wheels_and_caster.stl", "wheel rim band", (20.0, -30.0, 24.0), "material"),
     _probe("12_drive_wheels_and_caster.stl", "caster cup bore", (0.0, 0.0, 5.0), "air"),
@@ -1605,8 +1632,47 @@ def build_12() -> Tuple[PartSpec, MeshBuilder]:
     return spec, m
 
 
+def build_13() -> Tuple[PartSpec, MeshBuilder]:
+    """The four passive pivot pins and the claw's finger collar.
+
+    Every pitch joint is double-shear: the servo spline drives one side, and a printed pin
+    carries the other in a 6.6 mm bore. The first revision of this kit described that pin in
+    the text but never modelled it, so the arm could not have been assembled at J2, J3 or J4.
+    This is that part. All five bodies print standing on the bed - a vertical pin is a stubby
+    column with no overhang at all.
+    """
+    m = MeshBuilder("13_pivot_pins_and_claw_collar")
+    for py in (-48.0, -16.0, 16.0):
+        m.add_cylinder_z(0.0, py, 0.0, PIVOT_PIN_SHAFT_MM, PASSIVE_PIN_D / 2.0, 32)
+        m.add_cylinder_z(0.0, py, PIVOT_PIN_SHAFT_MM, PIVOT_PIN_HEAD_T_MM,
+                         PIVOT_PIN_HEAD_D_MM / 2.0, 32)
+    # The claw retainer: same head, a shaft long enough for the palm's blind sleeve socket.
+    m.add_cylinder_z(0.0, 48.0, 0.0, CLAW_PIN_SHAFT_MM, PASSIVE_PIN_D / 2.0, 32)
+    m.add_cylinder_z(0.0, 48.0, CLAW_PIN_SHAFT_MM, PIVOT_PIN_HEAD_T_MM,
+                     PIVOT_PIN_HEAD_D_MM / 2.0, 32)
+    # The collar: slips over the palm sleeve and under the retainer's head, taking up the 3 mm
+    # of sleeve the finger's 6 mm hub does not cover.
+    m.add_tube_z(0.0, 0.0, 0.0, CLAW_COLLAR_H_MM, CLAW_COLLAR_ID_MM / 2.0,
+                 CLAW_COLLAR_OD_MM / 2.0, 36)
+    spec = PartSpec(
+        "13_pivot_pins_and_claw_collar.stl", "3 joint pivot pins + claw retainer and collar", 2.0,
+        "Every pin standing on its head face; roll the collar on its edge if you prefer", 0.16, 4,
+        40, "None",
+        "Carries the passive side of J2, J3 and J4, and retains the passive claw finger.",
+        [f"Three joint pins: {PASSIVE_PIN_D:.1f} mm shaft x {PIVOT_PIN_SHAFT_MM:.2f} mm long, "
+         f"head {PIVOT_PIN_HEAD_D_MM:.0f} x {PIVOT_PIN_HEAD_T_MM:.0f} mm. That length is exactly "
+         f"the corridor it spans - the two 2.5 mm flank walls plus the 0.30 mm joint gap - so "
+         f"the tip lands flush with the parent's bore and cannot touch the servo case behind it.",
+         f"The retainer's shaft is {CLAW_PIN_SHAFT_MM:.1f} mm for the palm's blind 6.6 mm sleeve "
+         f"socket; its head sits above the finger and stops it lifting off.",
+         f"Print in PETG at 4 walls: this pin is the whole bearing surface on the passive side. "
+         f"If it comes out oversize, sand it, do not drill the link."])
+    return spec, m
+
+
 BUILDERS = (build_00, build_01, build_02, build_03, build_04, build_05, build_06,
-            build_07, build_08, build_09, build_10, build_11, build_12)
+            build_07, build_08, build_09, build_10, build_11, build_12,
+            build_13)
 PART_FILENAMES: Tuple[str, ...] = (
     "00_tolerance_test_coupon.stl",
     "01_desk_c_clamp_frame.stl",
@@ -1621,6 +1687,7 @@ PART_FILENAMES: Tuple[str, ...] = (
     "10_cable_clips_and_electronics_tray.stl",
     "11_mobile_rover_chassis.stl",
     "12_drive_wheels_and_caster.stl",
+    "13_pivot_pins_and_claw_collar.stl",
 )
 PLA_DENSITY_G_PER_CM3 = 1.24
 
@@ -1631,7 +1698,7 @@ def build_all_parts() -> List[Tuple[PartSpec, MeshBuilder]]:
 
 
 def generate_all_parts(out_dir: Path, clearance_mm: float = 0.25):
-    """Generate all 13 STLs and return rows of (spec, bbox, triangles, signed volume)."""
+    """Generate all 14 STLs and return rows of (spec, bbox, triangles, signed volume)."""
     del clearance_mm          # clearances now come from the declared fit constants
     rows = []
     for spec, mesh in build_all_parts():

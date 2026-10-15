@@ -110,6 +110,6 @@ with a supervisor, a physical bumper and a hard e-stop on the drive rail.
 the arm from the same constants as the Python model (the browser's FK is cross-checked against
 `src/phase5_control/kinematics.py` by the test suite using node), solves IK through `/api/ik`,
 plans through `/api/plan`, animates the offline drive trace through `/api/fetch`, and lets you
-inspect all 13 STL files client-side. It is a viewer: no physics, no collision, no measurements.
+inspect all 14 STL files client-side. It is a viewer: no physics, no collision, no measurements.
 
 See [verification status](verification_status.md) for the claims that have *not* been demonstrated.

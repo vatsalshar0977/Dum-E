@@ -1,7 +1,7 @@
 """The deep CAD audit is a report, not a gate - but it must keep working and must not find
 anything NEW on its own.
 
-`known_issues` below is the ledger of everything the audit reports about the 13 shipped STL
+`known_issues` below is the ledger of everything the audit reports about the 14 shipped STL
 files at this commit. It is EMPTY: the rebuilt 04-09 links, the claw on the palm's own pivot
 pitch and the re-scaled tray clear every check. The assertion is a subset test, so a fresh
 geometric defect - a bore that moves, a pocket that shrinks, a body that comes apart - adds an
@@ -51,7 +51,7 @@ def test_deep_cad_audit_reports_only_known_issues():
 def test_audit_checks_every_part():
     """Every shipped STL must appear in the audit - a new part cannot slip through unmeasured."""
     stl = sorted((ROOT / "cad" / "stl").glob("*.stl"))
-    assert len(stl) == 13, [p.name for p in stl]
+    assert len(stl) == 14, [p.name for p in stl]
     text = AUDIT.read_text(encoding="utf-8")
     for path in stl:
         assert path.name in text, f"{path.name} is not covered by the deep audit"

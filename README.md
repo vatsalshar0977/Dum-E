@@ -14,7 +14,7 @@ python3 src/phase8_safety_testing/run_full_acceptance_suite.py
 | Phase | Files | Status |
 |---|---|---|
 | 1 — concept | `config/robot_config.yaml`, `docs/phase1_requirements_and_design.md`, `docs/bom_phase1.csv`, `src/phase1_sizing/` | Budget/geometry **estimates only**. The `$58.50` stationary / `$66.50` mobile totals are dated estimates, not quoted prices. |
-| 2 — mechanical | `cad/stl/`, `src/phase2_mechanical/`, `docs/phase2_mechanical_and_3d_printing.md` (+ Appendix B) | 13 generated STLs with **true hollow cavities** (no overlap tricks), datasheet spline offsets giving **0.0000 mm** measured coaxiality, and +0.60 mm telescoping straddle clearance. `verify_assembly_fit.py` measures 204 checks straight from the delivered files: **204 / 204 PASS**. Still not printed; tolerances need the coupon. |
+| 2 — mechanical | `cad/stl/`, `src/phase2_mechanical/`, `docs/phase2_mechanical_and_3d_printing.md` (+ Appendix B) | 14 generated STLs with **true hollow cavities** (no overlap tricks), datasheet spline offsets giving **0.0000 mm** measured coaxiality, and +0.60 mm telescoping straddle clearance. `verify_assembly_fit.py` measures 212 checks straight from the delivered files: **212 / 212 PASS**. Still not printed; tolerances need the coupon. |
 | 3 — electronics | `docs/phase3_electronics_and_wiring.md`, `src/phase3_electronics/`, `firmware/phase3_full_6dof_esp32/` | **Full firmware** for 6 arm channels + 2 rover wheels, a **hardware cliff reflex** on GPIO 25/26 (reverse 350 ms, then neutral, target <5 ms), a non-blocking HC-SR04, the ESP32 task watchdog (FMEA #11) and I²C bus recovery (FMEA #12). Its safety logic is **compiled and executed on a host** — 73 + 83 checks — but the sketch has **never been flashed**, and the wheel directions must be proved on the floor before any cliff test. |
 | 4 — simulation | `urdf/bude_arm.urdf`, `src/phase4_simulation/` | Box-proxy URDF, a stdlib kinematic demo, an optional PyBullet path, and an interactive schematic viewer. No grasp or collision certification. |
 | 5 — controls | `src/phase5_control/`, `ros2_ws/src/bude_moveit_config/` | FK, fail-closed IK with an opt-in pitch ladder, minimum-jerk planning, analytic keep-outs, and MoveIt 2/`ros2_control` config drafts that have **never been loaded**. No hardware driver. |
@@ -31,9 +31,9 @@ On Windows PowerShell use `python` where examples say `python3`:
 ```sh
 python3 src/phase8_safety_testing/run_full_acceptance_suite.py    # everything: 8 phases, one scorecard
 python3 -m unittest tests.test_foundations tests.test_phase5_phase6 tests.test_phase7_phase8
-python3 src/phase2_mechanical/generate_stl_parts.py     # regenerate all 13 STLs
+python3 src/phase2_mechanical/generate_stl_parts.py     # regenerate all 14 STLs
 python3 src/phase2_mechanical/verify_print_parts.py     # mesh integrity + measured bolt circle
-python3 src/phase2_mechanical/verify_assembly_fit.py    # 204 checks straight from cad/stl/
+python3 src/phase2_mechanical/verify_assembly_fit.py    # 212 checks straight from cad/stl/
 python3 src/phase5_control/kinematics.py
 python3 src/phase5_control/trajectory_and_collision.py
 python3 src/phase6_perception/camera_and_hand_eye_calib.py
@@ -43,7 +43,7 @@ python3 src/phase7_voice_personality/voice_assistant.py       # offline, no micr
 python3 src/phase7_voice_personality/voice_assistant.py -c "hand me the screwdriver"
 python3 src/phase8_safety_testing/safety_supervisor_and_logger.py --echo
 python3 -m unittest tests.test_firmware            # compiles + runs the firmware on a host
-python3 src/phase2_mechanical/verify_assembly_fit.py  # 204 checks straight from cad/stl/
+python3 src/phase2_mechanical/verify_assembly_fit.py  # 212 checks straight from cad/stl/
 python3 src/phase8_safety_testing/run_phase_walkthrough.py   # every phase entry point, in order
 ```
 

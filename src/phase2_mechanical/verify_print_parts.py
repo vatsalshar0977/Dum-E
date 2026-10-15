@@ -144,6 +144,7 @@ def main() -> int:
         "10_cable_clips_and_electronics_tray.stl",
         "11_mobile_rover_chassis.stl",
         "12_drive_wheels_and_caster.stl",
+        "13_pivot_pins_and_claw_collar.stl",
     ]
 
     ok = True

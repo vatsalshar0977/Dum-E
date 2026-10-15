@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deep CAD audit: reads the 13 shipped STL files and interrogates them.
+"""Deep CAD audit: reads the 14 shipped STL files and interrogates them.
 
 `verify_assembly_fit.py` asks whether the declared features exist. This asks harder
 questions, from the bytes of the files that will actually be printed:
@@ -66,7 +66,10 @@ from generate_stl_parts import (                                                
     J1_SPLINE_Z, M3_CLEARANCE_HOLE_D_MM, M3_NUT_ACROSS_FLATS_MM, M3_NUT_TRAP_DEPTH_MM,
     MG996R_BODY_L, MG996R_BODY_W, MG996R_CASE_ALONG_AXIS, MG996R_HORN_BORE_D,
     MG996R_SPLINE_OFFSET, MG90S_BODY_L, MG90S_BODY_W, MG90S_CASE_ALONG_AXIS,
+    AXIAL_CLEARANCE_MM, CLAW_COLLAR_H_MM, CLAW_COLLAR_ID_MM, CLAW_COLLAR_OD_MM,
+    CLAW_PIN_SHAFT_MM,
     MG90S_BODY_W, MG90S_HORN_BORE_D, MG90S_SPLINE_OFFSET, PASSIVE_BORE_D, PASSIVE_PIN_D,
+    PIVOT_PIN_HEAD_D_MM, PIVOT_PIN_HEAD_T_MM, PIVOT_PIN_SHAFT_MM,
     PART_FILENAMES, ROVER_BOLT_ANGLES_DEG, ROVER_BOLT_CIRCLE_R_MM, WALL_T,
     WHEEL_DIAMETER_MM, WHEEL_THICKNESS_MM, STRADDLE_GAP_TOTAL,
     J2_OUTER_Y, J3_OUTER_Y, J4_OUTER_Y, J2_Y_NEG, J3_Y_NEG, J4_Y_NEG,
@@ -102,6 +105,7 @@ DECLARED_BODIES = {
     "10_cable_clips_and_electronics_tray.stl": 1,
     "11_mobile_rover_chassis.stl": 1,
     "12_drive_wheels_and_caster.stl": 3,
+    "13_pivot_pins_and_claw_collar.stl": 5,
 }
 
 PLA_DENSITY_G_CM3 = 1.24
@@ -1128,6 +1132,153 @@ def audit_placement(meshes: Dict[str, Mesh], quick: bool) -> None:
 # =============================================================================
 # E. CLEARANCE - do the mating parts interfere when assembled?
 # =============================================================================
+def _solid_bands(mesh: Mesh, axis_point, offset_mm: float, axis: int = 1,
+                 scan: Tuple[float, float] = (-60.0, 60.0), step: float = 0.05):
+    """Solid bands along one axis, walked a little way off the joint axis.
+
+    Off-axis matters: a ray straight down the axis runs down the bore and reports air the whole
+    way. `offset_mm` is chosen to cut the WALL, not the 6.6 mm hole, so the bands are the metal
+    the pin actually has to span.
+    """
+    probe = list(axis_point)
+    other = 0 if axis != 0 else 1
+    probe[other] += offset_mm
+    bands, prev, at = [], None, scan[0]
+    while at <= scan[1]:
+        q = list(probe)
+        q[axis] = at
+        inside = mesh.point_in_solid(tuple(q))
+        if inside != prev:
+            bands.append((at, inside))
+            prev = inside
+        at += step
+    return [(bands[i][0], bands[i + 1][0]) for i in range(len(bands) - 1) if bands[i][1]]
+
+
+def audit_pivot_pins(meshes: Dict[str, Mesh], quick: bool) -> None:
+    """Does the printed pin kit actually span the corridors the links present?
+
+    The four pins are only useful if their shafts cover the gap between two flank walls without
+    running into the servo case behind the parent's bore. Both halves of that statement are
+    MEASURED here - the corridor from parts 04..07, the pin from part 13 - because the failure
+    this section exists to prevent is a pin that is described in the text and modelled nowhere.
+    """
+    pins = meshes.get("13_pivot_pins_and_claw_collar.stl")
+    if pins is None:
+        record("pins", "13_pivot_pins_and_claw_collar.stl :: present", False, "file missing")
+        return
+
+    # --- the pins themselves, from their own bytes ---------------------------------------
+    # A cylinder carries vertices only on its rims, so a band MUST include a rim to find any.
+    shaft_d, shaft_len, head_t = [], [], []
+    for py in (-48.0, -16.0, 16.0, 48.0):
+        got = bore_measure(pins, "Z", (0.0, py, 0.0), (-0.05, 5.0), PASSIVE_PIN_D / 2.0)
+        # Careful: a solid cylinder's flat cap is a FAN, so it has a centre vertex on the axis
+        # as well as rim vertices. The shaft's rim is a RING, so the radius test must be a band
+        # - using r <= 3.05 would pick up the head's centre vertex and report a 9.3 mm shaft.
+        ring6 = [p[2] for p in pins.verts
+                 if 2.95 <= math.hypot(p[0], p[1] - py) <= 3.05]
+        disc10 = [p[2] for p in pins.verts if math.hypot(p[0], p[1] - py) <= 5.05]
+        if got is not None:
+            shaft_d.append(got[1])
+        if ring6 and disc10:
+            shaft_len.append(max(ring6) - min(ring6))
+            head_t.append(max(disc10) - max(ring6))
+    record("pins", "pin shafts are the declared 6.00 mm",
+           len(shaft_d) == 4 and all(abs(v - PASSIVE_PIN_D) < 0.05 for v in shaft_d),
+           f"measured {', '.join(fmt(v) for v in shaft_d)} mm over {len(shaft_d)} pins")
+    record("pins", "three joint pins share one shaft length",
+           len(shaft_len) == 4 and max(shaft_len[:3]) - min(shaft_len[:3]) < 1e-6
+           and abs(shaft_len[0] - PIVOT_PIN_SHAFT_MM) < 0.05,
+           f"joint shafts {', '.join(fmt(v) for v in shaft_len[:3])} mm, claw retainer "
+           f"{fmt(shaft_len[3]) if len(shaft_len) > 3 else 'n/a'} mm, declared "
+           f"{fmt(PIVOT_PIN_SHAFT_MM)} / {fmt(CLAW_PIN_SHAFT_MM)} mm")
+    record("pins", "every pin carries a head wider than the bore it holds",
+           len(head_t) == 4 and all(abs(v - PIVOT_PIN_HEAD_T_MM) < 0.05 for v in head_t),
+           f"heads {', '.join(fmt(v) for v in head_t)} mm thick, "
+           f"{fmt(PIVOT_PIN_HEAD_D_MM)} mm across a {fmt(PASSIVE_BORE_D)} mm bore")
+
+    # --- the corridor each shaft has to span, measured in the parts themselves ------------
+    joints = (
+        ("J2", "04_base_upper_turret_j2.stl", (0.0, 0.0, J2_AXIS_Z_IN_04),
+         "05_upper_arm_link_80mm.stl", (0.0, 0.0, 0.0)),
+        ("J3", "05_upper_arm_link_80mm.stl", (80.0, 0.0, J3_AXIS_Z_IN_05),
+         "06_forearm_link_75mm.stl", (0.0, 0.0, 0.0)),
+        ("J4", "06_forearm_link_75mm.stl", (75.0, 0.0, J4_AXIS_Z_IN_06),
+         "07_wrist_pitch_roll_bracket.stl", (0.0, 0.0, 0.0)),
+    )
+    spans = {}
+    for joint, parent_name, parent_pt, child_name, child_pt in joints:
+        parent, child = meshes.get(parent_name), meshes.get(child_name)
+        if parent is None or child is None:
+            continue
+        # The child owns the OUTERMOST flank: a hobby servo's spline is at the top of its case,
+        # so the case - and therefore the parent's wall - always sits inboard of the child's.
+        child_bands = [b for b in _solid_bands(child, child_pt, 4.5) if b[1] <= 0.0 and
+                       b[1] - b[0] > 1.0]
+        if not child_bands:
+            record("pins", f"{joint} :: the child's clevis wall is measurable", False, "")
+            continue
+        outer, child_inner = min(b[0] for b in child_bands), max(b[1] for b in child_bands)
+        parent_bands = [b for b in _solid_bands(parent, parent_pt, 4.5)
+                        if b[1] - b[0] > 1.0 and b[0] >= child_inner - 1e-6]
+        if not parent_bands:
+            record("pins", f"{joint} :: the parent's bearing wall is measurable", False, "")
+            continue
+        near = min(parent_bands, key=lambda b: b[0])
+        gap = near[0] - child_inner
+        span = near[1] - outer
+        spans[joint] = span
+        sane = -0.05 <= gap <= 2.0
+        record("pins", f"{joint} :: the walls sit either side of the joint gap", sane,
+               f"child wall ends y = {fmt(child_inner, 2)}, parent wall starts "
+               f"y = {fmt(near[0], 2)} -> gap {fmt(gap, 2)} mm (declared "
+               f"{fmt(AXIAL_CLEARANCE_MM, 2)} mm)")
+        record("pins", f"{joint} :: pin shaft spans the measured corridor",
+               span - 1e-6 <= PIVOT_PIN_SHAFT_MM <= span + 0.5,
+               f"corridor {fmt(span)} mm (outer face y = {fmt(outer, 2)} to inner "
+               f"y = {fmt(near[1], 2)}), pin shaft {fmt(PIVOT_PIN_SHAFT_MM)} mm")
+
+    if len(spans) == 3:
+        spread = max(spans.values()) - min(spans.values())
+        record("pins", "all three joint corridors are the same width", spread < 1e-6,
+               f"J2/J3/J4 corridors {', '.join(fmt(v) for v in spans.values())} mm "
+               f"(one pin fits all three)")
+
+    # --- the claw's retainer and collar ---------------------------------------------------
+    palm = meshes.get("08_gripper_body_and_cam_mount.stl")
+    claw = meshes.get("09_gripper_geared_fingers_pair.stl")
+    if palm is not None and claw is not None:
+        axis_pt = (J6_AXIS_X_IN_08, J6_RIGHT_Y, 0.0)
+        sleeve_top = max(p[2] for p in palm.verts
+                         if math.hypot(p[0] - J6_AXIS_X_IN_08, p[1] - J6_RIGHT_Y) <= 4.0)
+        below = [b for b in _solid_bands(palm, axis_pt, 0.0, axis=2, scan=(-12.0, 46.0))
+                 if b[1] <= sleeve_top + 1e-6]
+        socket_bottom = max(b[1] for b in below) if below else float("nan")
+        depth = sleeve_top - socket_bottom
+        record("pins", "claw retainer covers the palm's blind sleeve socket",
+               abs(depth - CLAW_PIN_SHAFT_MM) <= 0.10,
+               f"the palm's socket runs z = {fmt(socket_bottom, 1)} (plate top) to "
+               f"{fmt(sleeve_top, 1)} (sleeve top) = {fmt(depth)} mm deep; retainer shaft "
+               f"{fmt(CLAW_PIN_SHAFT_MM)} mm")
+        hub_bands = [b for b in _solid_bands(claw, (0.0, J6_RIGHT_Y, 0.0), 3.6, axis=2,
+                                             scan=(-12.0, 46.0)) if b[1] - b[0] > 1.0]
+        hub_h = (max(b[1] for b in hub_bands) - min(b[0] for b in hub_bands)) if hub_bands \
+            else float("nan")
+        proud = depth - hub_h
+        record("pins", "collar takes up exactly the sleeve the finger does not cover",
+               abs(proud - CLAW_COLLAR_H_MM) <= 0.10,
+               f"socket {fmt(depth)} mm - finger hub {fmt(hub_h)} mm = {fmt(proud)} mm of "
+               f"exposed sleeve; collar is {fmt(CLAW_COLLAR_H_MM)} mm")
+        record("pins", "collar slips over the palm's sleeve and clear of the teeth",
+               CLAW_COLLAR_ID_MM > 8.0 and CLAW_COLLAR_OD_MM < 2 * 8.44,
+               f"collar bore {fmt(CLAW_COLLAR_ID_MM)} mm over an 8.00 mm sleeve, OD "
+               f"{fmt(CLAW_COLLAR_OD_MM)} mm inside the claw's 8.44 mm tooth root")
+        record("pins", "the pin head cannot drop into the bore it retains",
+               PIVOT_PIN_HEAD_D_MM > PASSIVE_BORE_D,
+               f"head {fmt(PIVOT_PIN_HEAD_D_MM)} mm vs bore {fmt(PASSIVE_BORE_D)} mm")
+
+
 def audit_interference(meshes: Dict[str, Mesh], quick: bool) -> None:
     """Sweep each straddle joint through its travel and report the first clash anywhere.
 
@@ -1436,6 +1587,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print("  --- clearance ---")
     audit_interference(MESHES, args.quick)
     audit_claw_interface(MESHES, args.quick)
+    print("  --- pins ---")
+    audit_pivot_pins(MESHES, args.quick)
 
     # ---- report ---------------------------------------------------------------------
     lines: List[str] = []

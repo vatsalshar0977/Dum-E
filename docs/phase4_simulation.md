@@ -30,7 +30,7 @@ Standard library only, no third-party JavaScript and no CDN, so it works offline
 | `/api/ik?x=&y=&z=&pitch=&roll=&adapt=` | every IK branch with its achieved pitch and keep-out verdict |
 | `/api/plan?x=&y=&z=&pitch=&from=` | the minimum-jerk samples the page plays back |
 | `/api/fetch?x=&y=` | the offline drive-policy trace |
-| `/api/parts` | the 13 STLs with triangle counts |
+| `/api/parts` | the 14 STLs with triangle counts |
 | `/api/stl/<file>` | the raw binary STL, parsed and shaded in the browser |
 
 You can orbit the scene, drag the five joint sliders, jump to the four named poses, ask for a

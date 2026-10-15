@@ -65,7 +65,7 @@ STEPS: Sequence[Step] = (
              [sys.executable, "src/phase1_sizing/torque_and_power_calc.py"],
              [sys.executable, "src/phase1_sizing/single_joint_ping.py", "--dry-run"],
          ]),
-    Step(2, "Phase 2 — 13 STL printability and the 206-point fit audit",
+    Step(2, "Phase 2 — 14 STL printability and the 212-point fit audit",
          "Every printed part: watertight mesh, true hollow cavities, coaxial bores, straddle "
          "clearances, and the rover bolt circle.",
          [

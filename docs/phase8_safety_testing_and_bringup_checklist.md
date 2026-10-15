@@ -97,7 +97,7 @@ surprise; a surprise you keep going past is how hardware dies.
       M3 hex nut and a real 6 mm pin. If the pockets are tight, regenerate every STL with
       `--clearance 0.32` and reprint the coupon.
 - [ ] Confirm the printed part's declared mass against a scale. `verify_assembly_fit.py` says
-      the parts are ~585 g of solid PLA; at 3 walls and 20% infill a real set should be far
+      the parts are ~588 g of solid PLA; at 3 walls and 20% infill a real set should be far
       lighter. If a single link is much heavier than the table, the Phase 1 torque margin is
       gone: re-check `torque_and_power_calc.py --payload-g 100`.
 - [ ] Inspect every printed bore with a 6 mm pin and every hex trap with a real nut, by hand.

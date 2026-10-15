@@ -147,7 +147,7 @@ ASSEMBLY_FIT_PATTERN = r"TOTAL\s+\d+ / \d+ checks\s+(PASS|FAIL)"
 
 
 def phase2(quick: bool) -> PhaseReport:
-    report = PhaseReport("P2", "Mechanical: 13 STLs, true hollows, coaxiality")
+    report = PhaseReport("P2", "Mechanical: 14 STLs, true hollows, coaxiality")
     code, out = run_script("src/phase2_mechanical/verify_print_parts.py")
     passed = "PASS: every part" in out
     report.add("print-parts verifier", code == 0 and passed,

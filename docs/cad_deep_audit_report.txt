@@ -184,6 +184,20 @@
        3 printed piece(s) from 22 edge-disjoint solid(s); 28 cross, 3 inside, tightest 0 um
   ok   12_drive_wheels_and_caster.stl :: what the slicer gets
           8073 mm3 [-24..24, 6..54, 22..26] |    8073 mm3 [-24..24, -54..-6, 22..26] |    4700 mm3 [-13..13, -13..13, 0..14]
+  ok   13_pivot_pins_and_claw_collar.stl :: surface is closed (no naked edges)
+       0 naked, 1968 manifold, 0 non-manifold of 1968 edges
+  ok   13_pivot_pins_and_claw_collar.stl :: no degenerate triangles
+       0 found
+  ok   13_pivot_pins_and_claw_collar.stl :: duplicate faces are absent
+       0 duplicated
+  ok   13_pivot_pins_and_claw_collar.stl :: every body is positively wound
+       0 of 9 bodies inverted or flat
+  ok   13_pivot_pins_and_claw_collar.stl :: no dust bodies
+       0 slivers under 0.5 mm2
+  ok   13_pivot_pins_and_claw_collar.stl :: prints as 5 piece(s), not more
+       5 printed piece(s) from 9 edge-disjoint solid(s); 4 cross, tightest 0 um
+  ok   13_pivot_pins_and_claw_collar.stl :: what the slicer gets
+          1033 mm3 [-5..5, 43..53, 0..13] |     737 mm3 [-5..5, 11..21, 0..9] |     737 mm3 [-5..5, -21..-11, 0..9] |     737 mm3 [-5..5, -53..-43, 0..9] |     180 mm3 [-6..6, -6..6, 0..3]
 
 ======================================================================================================================
   SIZING
@@ -318,6 +332,16 @@
        0.0% needs support (flipped 180 deg; as-modelled 29.5%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
   ok   12_drive_wheels_and_caster.stl :: centre of mass is inside the footprint
        CoM (0.0, 0.0, 18.4) mm, 70% up the part
+  ok   13_pivot_pins_and_claw_collar.stl :: fits the 180 mm bed
+       max dimension 106.0 mm
+  ok   13_pivot_pins_and_claw_collar.stl :: solid volume is sane
+       2155.7 mm3 = 2.7 g PLA (declared 0 g, +2.7 g)
+  ok   13_pivot_pins_and_claw_collar.stl :: sits flat enough to print without a raft
+       first 0.5 mm slice covers 173.6 mm2
+  ok   13_pivot_pins_and_claw_collar.stl :: overhang area is printable in the declared orientation
+       0.0% needs support (as modelled; as-modelled 0.0%, flipped 0.0%). Multi-body files can also be split in the slicer and each body laid flat.
+  ok   13_pivot_pins_and_claw_collar.stl :: centre of mass is inside the footprint
+       CoM (-0.0, 2.2, 6.1) mm, 47% up the part
 
 ======================================================================================================================
   FITS
@@ -480,5 +504,37 @@
        clear through the declared travel; the arm touches on the -25 side at -40.0 deg (12 edge crossing(s), 0 point(s) inside, near (53.2, 3.3, 19.0)) and on the 55 side at 70.0 deg (12 edge crossing(s), 0 point(s) inside, near (87.3, -11.5, -5.4)). The firmware must clamp this joint to -25..55 deg.
 
 ======================================================================================================================
-  230 of 230 checks passed
+  PINS
+======================================================================================================================
+  ok   pin shafts are the declared 6.00 mm
+       measured 6.00, 6.00, 6.00, 6.00 mm over 4 pins
+  ok   three joint pins share one shaft length
+       joint shafts 5.30, 5.30, 5.30 mm, claw retainer 9.00 mm, declared 5.30 / 9.00 mm
+  ok   every pin carries a head wider than the bore it holds
+       heads 4.00, 4.00, 4.00, 4.00 mm thick, 10.00 mm across a 6.60 mm bore
+  ok   J2 :: the walls sit either side of the joint gap
+       child wall ends y = -41.25, parent wall starts y = -40.95 -> gap 0.30 mm (declared 0.30 mm)
+  ok   J2 :: pin shaft spans the measured corridor
+       corridor 5.30 mm (outer face y = -43.75 to inner y = -38.45), pin shaft 5.30 mm
+  ok   J3 :: the walls sit either side of the joint gap
+       child wall ends y = -39.25, parent wall starts y = -38.95 -> gap 0.30 mm (declared 0.30 mm)
+  ok   J3 :: pin shaft spans the measured corridor
+       corridor 5.30 mm (outer face y = -41.75 to inner y = -36.45), pin shaft 5.30 mm
+  ok   J4 :: the walls sit either side of the joint gap
+       child wall ends y = -26.25, parent wall starts y = -25.95 -> gap 0.30 mm (declared 0.30 mm)
+  ok   J4 :: pin shaft spans the measured corridor
+       corridor 5.30 mm (outer face y = -28.75 to inner y = -23.45), pin shaft 5.30 mm
+  ok   all three joint corridors are the same width
+       J2/J3/J4 corridors 5.30, 5.30, 5.30 mm (one pin fits all three)
+  ok   claw retainer covers the palm's blind sleeve socket
+       the palm's socket runs z = 31.9 (plate top) to 40.9 (sleeve top) = 9.00 mm deep; retainer shaft 9.00 mm
+  ok   collar takes up exactly the sleeve the finger does not cover
+       socket 9.00 mm - finger hub 6.00 mm = 3.00 mm of exposed sleeve; collar is 3.00 mm
+  ok   collar slips over the palm's sleeve and clear of the teeth
+       collar bore 8.20 mm over an 8.00 mm sleeve, OD 12.00 mm inside the claw's 8.44 mm tooth root
+  ok   the pin head cannot drop into the bore it retains
+       head 10.00 mm vs bore 6.60 mm
+
+======================================================================================================================
+  256 of 256 checks passed
 ======================================================================================================================
